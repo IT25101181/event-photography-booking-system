@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Management — LuminaShot</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+<div id="sidebar-root"></div>
+
+<div class="main-content fade-in">
+    <div class="page-header d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="page-title">Admin Management</h1>
+            <p class="page-subtitle">Manage system administrators and their permissions.</p>
+        </div>
+        <button class="btn-gold" data-bs-toggle="modal" data-bs-target="#adminModal" onclick="openAddModal()">
+            <i class="fas fa-user-shield"></i> Add Admin
+        </button>
+    </div>
+
+    <!-- Stats -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-4">
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-user-shield"></i></div>
+                <div class="stat-label">Total Admins</div>
+                <div class="stat-value" id="totalAdmins">—</div>
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:rgba(240,192,64,.15);color:#F0C040"><i class="fas fa-crown"></i></div>
+                <div class="stat-label">Super Admins</div>
+                <div class="stat-value" id="superAdmins">—</div>
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:rgba(46,204,113,.15);color:#2ECC71"><i class="fas fa-check-circle"></i></div>
+                <div class="stat-label">Active Admins</div>
+                <div class="stat-value" id="activeAdmins">—</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card-dark mb-4">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-5">
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" class="form-control-dark" id="searchInput" placeholder="Search admins..." oninput="applyFilter()">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select class="form-control-dark" id="roleFilter" onchange="applyFilter()">
+                    <option value="">All Roles</option>
+                    <option value="SUPER_ADMIN">Super Admin</option>
+                    <option value="ADMIN">Admin</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select class="form-control-dark" id="statusFilter" onchange="applyFilter()">
+                    <option value="">All Status</option>
+                    <option value="true">Active</option>
+                    <option value="false">Inactive</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn-ghost w-100" onclick="clearFilters()"><i class="fas fa-times"></i> Clear</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admins Table -->
+    <div class="card-dark">
+        <div class="table-responsive">
+            <table class="table-dark-custom">
+                <thead>
+                    <tr>
+                        <th>Administrator</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Created</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="adminsTableBody">
+                    <tr><td colspan="6"><div class="empty-state"><div class="spinner-gold mx-auto"></div></div></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Admin Modal -->
+<div class="modal fade modal-dark" id="adminModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="adminModalTitle"><i class="fas fa-user-shield me-2" style="color:#D4A017"></i> Add Administrator</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="adminId">
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label-dark">Full Name *</label>
+                        <input type="text" id="adminName" class="form-control-dark" placeholder="Jane Admin">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label-dark">Email *</label>
+                        <input type="email" id="adminEmail" class="form-control-dark" placeholder="admin@photobooking.com">
+                    </div>
+                    <div class="col-12" id="adminPwField">
+                        <label class="form-label-dark">Password * (min. 8 chars)</label>
+                        <input type="password" id="adminPassword" class="form-control-dark" placeholder="••••••••">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label-dark">Admin Role</label>
+                        <select id="adminRole" class="form-control-dark">
+                            <option value="ADMIN">Admin</option>
+                            <option value="SUPER_ADMIN">Super Admin</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-ghost" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn-gold" id="adminSaveBtn" onclick="saveAdmin()"><i class="fas fa-save"></i> Save Admin</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/sidebar.js"></script>
+<script>
+initPage('admins');
+
+let allAdmins = [];
+
+async function loadAdmins() {
+    try {
+        allAdmins = await API.admins.getAll();
+        const superA  = allAdmins.filter(a => a.role === 'SUPER_ADMIN').length;
+        const active  = allAdmins.filter(a => a.isActive).length;
+        document.getElementById('totalAdmins').textContent  = allAdmins.length;
+        document.getElementById('superAdmins').textContent  = superA;
+        document.getElementById('activeAdmins').textContent = active;
+        applyFilter();
+    } catch(e) { Toast.error('Failed to load admins'); }
+}
+
+function applyFilter() {
+    const q      = document.getElementById('searchInput').value.toLowerCase();
+    const role   = document.getElementById('roleFilter').value;
+    const status = document.getElementById('statusFilter').value;
+    let list = [...allAdmins];
+    if (q)      list = list.filter(a => a.fullName.toLowerCase().includes(q) || a.email.toLowerCase().includes(q));
+    if (role)   list = list.filter(a => a.role === role);
+    if (status) list = list.filter(a => String(a.isActive) === status);
+    renderTable(list);
+}
+
+function clearFilters() {
+    ['searchInput','roleFilter','statusFilter'].forEach(id => document.getElementById(id).value = '');
+    applyFilter();
+}
+
+function renderTable(list) {
+    if (!list.length) {
+        document.getElementById('adminsTableBody').innerHTML = '<tr><td colspan="6"><div class="empty-state"><i class="fas fa-user-shield"></i><h5>No admins found</h5></div></td></tr>';
+        return;
+    }
+    document.getElementById('adminsTableBody').innerHTML = list.map(a => `
+        <tr>
+            <td>
+                <div style="display:flex;align-items:center;gap:10px">
+                    <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#D4A017,#7A5E0A);display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;color:#111">${Utils.initials(a.fullName)}</div>
+                    <div style="font-weight:600;color:#F0F0F0;font-size:.875rem">${a.fullName}</div>
+                </div>
+            </td>
+            <td style="font-size:.875rem;color:#A0A0A0">${a.email}</td>
+            <td>
+                <span class="badge-status ${a.role === 'SUPER_ADMIN' ? 'badge-pending' : 'badge-gold'}" style="font-size:.65rem">
+                    ${a.role === 'SUPER_ADMIN' ? '<i class="fas fa-crown" style="font-size:.55rem"></i>' : '<i class="fas fa-user-shield" style="font-size:.55rem"></i>'}
+                    ${a.role}
+                </span>
+            </td>
+            <td style="font-size:.8rem;color:#555">${Utils.formatDate(a.createdAt)}</td>
+            <td>${Utils.activeBadge(a.isActive)}</td>
+            <td>
+                <div style="display:flex;gap:6px">
+                    <button class="btn-ghost" style="padding:5px 10px;font-size:.75rem" onclick="openEditModal(${a.id})" title="Edit"><i class="fas fa-edit"></i></button>
+                    <button class="btn-ghost" style="padding:5px 10px;font-size:.75rem" onclick="toggleStatus(${a.id})" title="Toggle Status">
+                        <i class="fas fa-toggle-${a.isActive ? 'on' : 'off'}" style="color:${a.isActive ? '#2ECC71' : '#666'}"></i>
+                    </button>
+                    <button class="btn-danger-ghost" style="padding:5px 10px" onclick="deleteAdmin(${a.id})" title="Delete"><i class="fas fa-trash"></i></button>
+                </div>
+            </td>
+        </tr>`).join('');
+}
+
+function openAddModal() {
+    document.getElementById('adminModalTitle').innerHTML = '<i class="fas fa-user-plus me-2" style="color:#D4A017"></i> Add Administrator';
+    document.getElementById('adminId').value = '';
+    ['adminName','adminEmail','adminPassword'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('adminRole').value = 'ADMIN';
+    document.getElementById('adminPwField').style.display = 'block';
+}
+
+function openEditModal(id) {
+    const a = allAdmins.find(x => x.id === id);
+    if (!a) return;
+    document.getElementById('adminModalTitle').innerHTML = '<i class="fas fa-edit me-2" style="color:#D4A017"></i> Edit Administrator';
+    document.getElementById('adminId').value    = a.id;
+    document.getElementById('adminName').value  = a.fullName;
+    document.getElementById('adminEmail').value = a.email;
+    document.getElementById('adminRole').value  = a.role;
+    document.getElementById('adminPwField').style.display = 'none';
+    new bootstrap.Modal(document.getElementById('adminModal')).show();
+}
+
+async function saveAdmin() {
+    const name  = document.getElementById('adminName').value.trim();
+    const email = document.getElementById('adminEmail').value.trim();
+    const pw    = document.getElementById('adminPassword').value;
+    const role  = document.getElementById('adminRole').value;
+    const id    = document.getElementById('adminId').value;
+
+    if (!name || !email) { Toast.warning('Name and email are required'); return; }
+    if (!id && (!pw || pw.length < 8)) { Toast.warning('Password must be at least 8 characters'); return; }
+
+    const btn = document.getElementById('adminSaveBtn');
+    btn.disabled = true; btn.innerHTML = '<div class="spinner-gold" style="width:16px;height:16px"></div>';
+
+    try {
+        if (id) {
+            await API.admins.update(id, { fullName: name, email, role, password: pw || 'placeholder12' });
+            Toast.success('Admin updated!');
+        } else {
+            await API.admins.create({ fullName: name, email, password: pw, role });
+            Toast.success('Admin created!');
+        }
+        bootstrap.Modal.getInstance(document.getElementById('adminModal'))?.hide();
+        await loadAdmins();
+    } catch(e) { Toast.error(e.message || 'Failed to save'); }
+    finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Save Admin'; }
+}
+
+async function toggleStatus(id) {
+    try {
+        await API.admins.toggle(id);
+        const a = allAdmins.find(x => x.id === id);
+        Toast.info(`${a?.fullName} is now ${a?.isActive ? 'inactive' : 'active'}`);
+        await loadAdmins();
+    } catch(e) { Toast.error(e.message); }
+}
+
+async function deleteAdmin(id) {
+    const a = allAdmins.find(x => x.id === id);
+    if (!await Utils.confirmDialog(`Permanently delete admin "${a?.fullName}"?`)) return;
+    try {
+        await API.admins.delete(id);
+        Toast.success('Admin deleted');
+        await loadAdmins();
+    } catch(e) { Toast.error(e.message); }
+}
+
+loadAdmins();
+</script>
+</body>
+</html>

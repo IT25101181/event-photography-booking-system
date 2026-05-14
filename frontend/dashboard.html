@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Dashboard — LuminaShot</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+<div id="sidebar-root"></div>
+
+<div class="main-content fade-in">
+    <div class="page-header d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="page-title" id="welcomeMsg">Welcome back!</h1>
+            <p class="page-subtitle">Here's an overview of your bookings and activity.</p>
+        </div>
+        <button class="btn-gold" onclick="window.location.href='booking-form.html'">
+            <i class="fas fa-plus"></i> New Booking
+        </button>
+    </div>
+
+    <!-- Quick stats -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-lg-3">
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-calendar-alt"></i></div>
+                <div class="stat-label">My Bookings</div>
+                <div class="stat-value" id="myTotal">—</div>
+                <div class="stat-sub">All time</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:rgba(46,204,113,.15);color:#2ECC71"><i class="fas fa-check-circle"></i></div>
+                <div class="stat-label">Confirmed</div>
+                <div class="stat-value" id="myConfirmed">—</div>
+                <div class="stat-sub">Ready to go</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:rgba(240,192,64,.15);color:#F0C040"><i class="fas fa-clock"></i></div>
+                <div class="stat-label">Pending</div>
+                <div class="stat-value" id="myPending">—</div>
+                <div class="stat-sub">Awaiting confirmation</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:rgba(52,152,219,.15);color:#3498DB"><i class="fas fa-flag-checkered"></i></div>
+                <div class="stat-label">Completed</div>
+                <div class="stat-value" id="myCompleted">—</div>
+                <div class="stat-sub">Finished events</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <!-- My Bookings -->
+        <div class="col-lg-8">
+            <div class="card-dark">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 style="font-weight:700;font-size:1rem;margin:0">My Upcoming Events</h5>
+                    <a href="bookings.html" class="btn-ghost">View All</a>
+                </div>
+                <div id="myBookingsList">
+                    <div class="empty-state"><div class="spinner-gold mx-auto"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions + Available Staff -->
+        <div class="col-lg-4">
+            <div class="card-dark mb-3">
+                <h5 style="font-weight:700;font-size:.9rem;margin-bottom:16px;color:#888;text-transform:uppercase;letter-spacing:.5px">Quick Actions</h5>
+                <div style="display:flex;flex-direction:column;gap:8px">
+                    <a href="booking-form.html" class="btn-gold justify-content-center py-3">
+                        <i class="fas fa-calendar-plus"></i> Create New Booking
+                    </a>
+                    <a href="packages.html" class="btn-outline-gold justify-content-center py-3">
+                        <i class="fas fa-box-open"></i> Browse Packages
+                    </a>
+                    <a href="media-staff.html" class="btn-ghost justify-content-center py-3">
+                        <i class="fas fa-camera"></i> Find Photographer
+                    </a>
+                    <a href="reviews.html" class="btn-ghost justify-content-center py-3">
+                        <i class="fas fa-star"></i> Write a Review
+                    </a>
+                </div>
+            </div>
+
+            <div class="card-dark">
+                <h5 style="font-weight:700;font-size:.9rem;margin-bottom:16px;color:#888;text-transform:uppercase;letter-spacing:.5px">Available Staff</h5>
+                <div id="availableStaffList">
+                    <div class="spinner-gold mx-auto" style="width:24px;height:24px"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/sidebar.js"></script>
+<script>
+initPage('dashboard');
+
+const currentUser = Auth.getUser();
+if (currentUser) {
+    document.getElementById('welcomeMsg').textContent = `Welcome back, ${currentUser.fullName?.split(' ')[0]}!`;
+}
+
+async function loadDashboard() {
+    try {
+        const [allBookings, availStaff] = await Promise.all([
+            API.bookings.getAll(),
+            API.staff.getAvailable()
+        ]);
+
+        // Filter user's bookings (match by email if needed, here we show all for demo)
+        const myBookings = allBookings;
+
+        document.getElementById('myTotal').textContent     = myBookings.length;
+        document.getElementById('myConfirmed').textContent = myBookings.filter(b => b.status === 'CONFIRMED').length;
+        document.getElementById('myPending').textContent   = myBookings.filter(b => b.status === 'PENDING').length;
+        document.getElementById('myCompleted').textContent = myBookings.filter(b => b.status === 'COMPLETED').length;
+
+        renderMyBookings(myBookings.filter(b => b.status !== 'CANCELLED').slice(0, 5));
+        renderAvailableStaff(availStaff.slice(0, 4));
+
+    } catch(e) { Toast.error('Failed to load dashboard'); }
+}
+
+function renderMyBookings(list) {
+    if (!list.length) {
+        document.getElementById('myBookingsList').innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-calendar-times"></i>
+                <h5>No upcoming bookings</h5>
+                <p>Create your first booking to get started</p>
+                <a href="booking-form.html" class="btn-gold mt-3"><i class="fas fa-plus"></i> Create Booking</a>
+            </div>`;
+        return;
+    }
+    document.getElementById('myBookingsList').innerHTML = list.map(b => {
+        const d = b.eventDate ? new Date(b.eventDate) : null;
+        return `
+        <div class="booking-card">
+            ${d ? `<div class="booking-date-block">
+                <div class="booking-date-month">${d.toLocaleString('default',{month:'short'})}</div>
+                <div class="booking-date-day">${d.getDate()}</div>
+                <div class="booking-date-year">${d.getFullYear()}</div>
+            </div>` : '<div class="booking-date-block"><div class="booking-date-day">?</div></div>'}
+            <div style="flex:1">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                    <div style="font-weight:700;font-size:.9rem;color:#F0F0F0">Booking #${b.id}</div>
+                    ${Utils.statusBadge(b.status)}
+                </div>
+                <div style="font-size:.8rem;color:#666">${b.location || 'Location TBD'} • $${b.totalAmount?.toFixed(2) || '0.00'}</div>
+                ${b.notes ? `<div style="font-size:.75rem;color:#555;margin-top:4px;font-style:italic">"${b.notes.substring(0,50)}..."</div>` : ''}
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+                ${b.status === 'COMPLETED' ? `<a href="reviews.html" class="btn-gold" style="font-size:.75rem;padding:6px 12px"><i class="fas fa-star"></i> Review</a>` : ''}
+                ${b.status === 'PENDING' || b.status === 'CONFIRMED' ? `<button class="btn-danger-ghost" onclick="cancelMyBooking(${b.id})" style="font-size:.75rem"><i class="fas fa-times"></i> Cancel</button>` : ''}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function renderAvailableStaff(list) {
+    if (!list.length) {
+        document.getElementById('availableStaffList').innerHTML = '<p style="color:#444;font-size:.8rem;text-align:center">No staff currently available</p>';
+        return;
+    }
+    document.getElementById('availableStaffList').innerHTML = list.map(s => `
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #1e1e1e">
+            ${Utils.avatarHtml(s.name, 32)}
+            <div style="flex:1">
+                <div style="font-size:.85rem;font-weight:600;color:#F0F0F0">${s.name}</div>
+                <div style="font-size:.72rem;color:#666">${s.type} • $${s.pricePerDay}/day</div>
+            </div>
+            <span class="badge-status badge-active" style="font-size:.65rem">Free</span>
+        </div>
+    `).join('');
+}
+
+async function cancelMyBooking(id) {
+    if (!await Utils.confirmDialog(`Cancel booking #${id}?`)) return;
+    try {
+        await API.bookings.cancel(id);
+        Toast.success('Booking cancelled');
+        loadDashboard();
+    } catch(e) { Toast.error(e.message); }
+}
+
+loadDashboard();
+</script>
+</body>
+</html>

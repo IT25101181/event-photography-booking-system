@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard — LuminaShot</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+<div id="sidebar-root"></div>
+
+<div class="main-content fade-in">
+    <div class="page-header d-flex align-items-center justify-content-between">
+        <div>
+            <h1 class="page-title">Overview</h1>
+            <p class="page-subtitle">Manage your studio bookings and resources.</p>
+        </div>
+        <div style="display:flex;gap:12px;align-items:center">
+            <div id="clockDisplay" style="font-size:.8rem;color:#666;font-family:monospace"></div>
+            <button class="btn-gold" onclick="refreshDashboard()"><i class="fas fa-sync-alt"></i> Refresh</button>
+        </div>
+    </div>
+
+    <!-- STAT CARDS -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-calendar-check"></i></div>
+                <div class="stat-label">Total Bookings</div>
+                <div class="stat-value" id="totalBookings">—</div>
+                <div class="stat-sub">All time</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-clock"></i></div>
+                <div class="stat-label">Pending</div>
+                <div class="stat-value" id="pendingBookings">—</div>
+                <div class="stat-sub">Awaiting confirmation</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-users"></i></div>
+                <div class="stat-label">Media Staff</div>
+                <div class="stat-value" id="totalStaff">—</div>
+                <div class="stat-sub">Photographers &amp; videographers</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-star"></i></div>
+                <div class="stat-label">Reviews</div>
+                <div class="stat-value" id="totalReviews">—</div>
+                <div class="stat-sub">Client feedback</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <!-- Pending Approvals -->
+        <div class="col-lg-5">
+            <div class="card-dark h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 style="font-weight:700;font-size:1rem;margin:0">Pending Approvals</h5>
+                    <span class="badge-status badge-pending" id="pendingBadge">0 New</span>
+                </div>
+                <div id="pendingList">
+                    <div class="empty-state"><div class="spinner-gold mx-auto"></div></div>
+                </div>
+                <a href="bookings.html" class="btn-outline-gold mt-3 w-100 justify-content-center" style="font-size:.85rem;padding:10px">
+                    View All Requests <i class="fas fa-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Stats panels -->
+        <div class="col-lg-7">
+            <div class="row g-3 h-100">
+                <div class="col-12">
+                    <div class="card-dark">
+                        <div class="d-flex justify-content-between mb-3">
+                            <div>
+                                <div style="font-size:.75rem;color:#666;text-transform:uppercase;letter-spacing:1px">Booking Volume</div>
+                                <div style="font-size:2rem;font-weight:800" id="confirmedCount">—</div>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:8px;color:#2ECC71;font-size:.8rem;font-weight:600">
+                                <i class="fas fa-arrow-up"></i> Active this month
+                            </div>
+                        </div>
+                        <div class="mini-bar-chart" id="barChart"></div>
+                        <div style="font-size:.75rem;color:#666;margin-top:8px">Confirmed vs Pending vs Completed</div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="card-dark text-center">
+                        <div style="font-size:.75rem;color:#666;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Packages Active</div>
+                        <div style="font-size:2.5rem;font-weight:800;color:#D4A017" id="activePackages">—</div>
+                        <div style="font-size:.75rem;color:#666">Photography &amp; Videography</div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="card-dark text-center">
+                        <div style="font-size:.75rem;color:#666;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Available Staff</div>
+                        <div style="font-size:2.5rem;font-weight:800;color:#2ECC71" id="availableStaff">—</div>
+                        <div style="font-size:.75rem;color:#666">Ready to book</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Bookings Table -->
+    <div class="card-dark">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h5 style="font-weight:700;font-size:1rem;margin:0">Recent Bookings</h5>
+            <a href="bookings.html" class="btn-ghost"><i class="fas fa-external-link-alt"></i> View All</a>
+        </div>
+        <div class="table-responsive">
+            <table class="table-dark-custom">
+                <thead>
+                    <tr>
+                        <th>Client / ID</th>
+                        <th>Event Date</th>
+                        <th>Location</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="recentBookingsBody">
+                    <tr><td colspan="6" class="text-center" style="padding:30px;color:#444">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/sidebar.js"></script>
+<script>
+initPage('admin');
+
+// Clock
+setInterval(() => {
+    document.getElementById('clockDisplay').textContent = new Date().toLocaleTimeString();
+}, 1000);
+
+async function refreshDashboard() {
+    await loadStats();
+    Toast.success('Dashboard refreshed');
+}
+
+async function loadStats() {
+    try {
+        const [bookings, staff, packages, reviews, pending, available] = await Promise.allSettled([
+            API.bookings.getAll(),
+            API.staff.getAll(),
+            API.packages.getAll(),
+            API.reviews.getAll(),
+            API.bookings.getByStatus('PENDING'),
+            API.staff.getAvailable()
+        ]);
+
+        const bList = bookings.value || [];
+        const sList = staff.value || [];
+        const pList = packages.value || [];
+        const rList = reviews.value || [];
+        const pendList = pending.value || [];
+        const avail = available.value || [];
+
+        document.getElementById('totalBookings').textContent   = bList.length;
+        document.getElementById('pendingBookings').textContent = pendList.length;
+        document.getElementById('totalStaff').textContent      = sList.length;
+        document.getElementById('totalReviews').textContent    = rList.length;
+        document.getElementById('activePackages').textContent  = pList.filter(p => p.isActive).length;
+        document.getElementById('availableStaff').textContent  = avail.length;
+
+        const confirmed  = bList.filter(b => b.status === 'CONFIRMED').length;
+        const completed  = bList.filter(b => b.status === 'COMPLETED').length;
+        const cancelled  = bList.filter(b => b.status === 'CANCELLED').length;
+        document.getElementById('confirmedCount').textContent  = confirmed;
+        document.getElementById('pendingBadge').textContent    = `${pendList.length} New`;
+
+        renderBarChart(confirmed, pendList.length, completed, cancelled);
+        renderPendingList(pendList.slice(0, 3));
+        renderRecentTable(bList.slice(-5).reverse());
+
+    } catch(e) { Toast.error('Failed to load dashboard data'); }
+}
+
+function renderBarChart(confirmed, pending, completed, cancelled) {
+    const max = Math.max(confirmed, pending, completed, cancelled, 1);
+    const bars = [
+        { label:'Confirmed', val:confirmed, color:'#2ECC71' },
+        { label:'Pending',   val:pending,   color:'#D4A017' },
+        { label:'Completed', val:completed, color:'#3498DB' },
+        { label:'Cancelled', val:cancelled, color:'#E74C3C' }
+    ];
+    document.getElementById('barChart').innerHTML = bars.map(b =>
+        `<div style="flex:1;background:rgba(255,255,255,.05);border-radius:6px 6px 0 0;position:relative;height:60px;cursor:pointer" title="${b.label}: ${b.val}">
+            <div style="position:absolute;bottom:0;left:0;right:0;background:${b.color};border-radius:6px 6px 0 0;height:${(b.val/max*100)}%;transition:height .4s;opacity:.8"></div>
+        </div>`
+    ).join('');
+}
+
+function renderPendingList(list) {
+    if (!list.length) {
+        document.getElementById('pendingList').innerHTML = '<div class="empty-state" style="padding:20px"><i class="fas fa-check-circle" style="color:#2ECC71"></i><p style="margin-top:8px;font-size:.85rem">No pending approvals</p></div>';
+        return;
+    }
+    document.getElementById('pendingList').innerHTML = list.map(b => `
+        <div style="background:#1a1a1a;border-radius:10px;padding:14px;margin-bottom:10px;border:1px solid #2a2a2a">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <div style="font-weight:600;font-size:.875rem;color:#F0F0F0">Booking #${b.id}</div>
+                    <div style="font-size:.75rem;color:#666">${Utils.formatDate(b.eventDate)} • ${b.location || 'TBD'}</div>
+                </div>
+                <span style="font-size:.7rem;color:#888">${Utils.formatDateTime(b.createdAt)}</span>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn-gold" style="padding:6px 14px;font-size:.78rem" onclick="confirmBooking(${b.id})">
+                    <i class="fas fa-check"></i> Confirm
+                </button>
+                <button class="btn-ghost" style="padding:6px 14px;font-size:.78rem" onclick="window.location.href='bookings.html'">
+                    Review
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderRecentTable(list) {
+    if (!list.length) {
+        document.getElementById('recentBookingsBody').innerHTML = '<tr><td colspan="6"><div class="empty-state"><i class="fas fa-calendar-times"></i><p>No bookings yet</p></div></td></tr>';
+        return;
+    }
+    document.getElementById('recentBookingsBody').innerHTML = list.map(b => `
+        <tr>
+            <td>
+                <div style="font-weight:600;color:#F0F0F0;font-size:.875rem">#${b.id}</div>
+                <div style="font-size:.75rem;color:#666">User ID: ${b.userId}</div>
+            </td>
+            <td>${Utils.formatDate(b.eventDate)}</td>
+            <td style="color:#A0A0A0">${b.location || '—'}</td>
+            <td style="color:#D4A017;font-weight:600">$${b.totalAmount?.toFixed(2) || '0.00'}</td>
+            <td>${Utils.statusBadge(b.status)}</td>
+            <td>
+                <div style="display:flex;gap:6px">
+                    ${b.status === 'PENDING' ? `<button class="btn-gold" style="padding:5px 10px;font-size:.75rem" onclick="confirmBooking(${b.id})"><i class="fas fa-check"></i></button>` : ''}
+                    ${b.status === 'CONFIRMED' ? `<button class="btn-ghost" style="padding:5px 10px;font-size:.75rem" onclick="completeBooking(${b.id})"><i class="fas fa-flag-checkered"></i></button>` : ''}
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+async function confirmBooking(id) {
+    try {
+        await API.bookings.confirm(id);
+        Toast.success(`Booking #${id} confirmed!`);
+        loadStats();
+    } catch(e) { Toast.error(e.message); }
+}
+
+async function completeBooking(id) {
+    try {
+        await API.bookings.complete(id);
+        Toast.success(`Booking #${id} completed!`);
+        loadStats();
+    } catch(e) { Toast.error(e.message); }
+}
+
+loadStats();
+</script>
+</body>
+</html>

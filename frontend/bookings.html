@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bookings — LuminaShot</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+<div id="sidebar-root"></div>
+
+<div class="main-content fade-in">
+    <div class="page-header d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="page-title">My Bookings</h1>
+            <p class="page-subtitle">Review and manage your scheduled events and past memories.</p>
+        </div>
+        <a href="booking-form.html" class="btn-gold"><i class="fas fa-plus"></i> New Booking</a>
+    </div>
+
+    <!-- Filters -->
+    <div class="card-dark mb-4">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" class="form-control-dark" id="searchInput" placeholder="Search by location, ID..." oninput="applyFilter()">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select class="form-control-dark" id="statusFilter" onchange="applyFilter()">
+                    <option value="">All Statuses</option>
+                    <option value="PENDING">Pending</option>
+                    <option value="CONFIRMED">Confirmed</option>
+                    <option value="CANCELLED">Cancelled</option>
+                    <option value="COMPLETED">Completed</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <input type="date" class="form-control-dark" id="dateFilter" onchange="applyFilter()">
+            </div>
+            <div class="col-md-2">
+                <button class="btn-ghost w-100" onclick="clearFilters()"><i class="fas fa-times"></i> Clear</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab bar -->
+    <div class="tab-bar mb-4">
+        <button class="tab-item active" id="tabUpcoming" onclick="switchView('upcoming')">Upcoming Events</button>
+        <button class="tab-item" id="tabPast" onclick="switchView('past')">Past Memories</button>
+        <button class="tab-item" id="tabAll" onclick="switchView('all')">All Bookings</button>
+    </div>
+
+    <!-- Bookings list -->
+    <div id="bookingsList">
+        <div class="empty-state"><div class="spinner-gold mx-auto"></div></div>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal fade modal-dark" id="editModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-edit me-2" style="color:#D4A017"></i> Booking Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="editModalBody">
+            </div>
+            <div class="modal-footer">
+                <button class="btn-ghost" data-bs-dismiss="modal">Close</button>
+                <button class="btn-gold" id="confirmBtn"><i class="fas fa-check"></i> Confirm Booking</button>
+                <button class="btn-danger-ghost" id="cancelBtn"><i class="fas fa-times"></i> Cancel Booking</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/sidebar.js"></script>
+<script>
+initPage('bookings');
+
+let allBookings = [];
+let currentView = 'upcoming';
+
+async function loadBookings() {
+    try {
+        allBookings = await API.bookings.getAll();
+        applyFilter();
+    } catch(e) { Toast.error('Failed to load bookings'); }
+}
+
+function switchView(view) {
+    currentView = view;
+    document.getElementById('tabUpcoming').classList.toggle('active', view==='upcoming');
+    document.getElementById('tabPast').classList.toggle('active', view==='past');
+    document.getElementById('tabAll').classList.toggle('active', view==='all');
+    applyFilter();
+}
+
+function applyFilter() {
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    const status = document.getElementById('statusFilter').value;
+    const date   = document.getElementById('dateFilter').value;
+    const today  = new Date().toISOString().split('T')[0];
+
+    let list = [...allBookings];
+
+    if (currentView === 'upcoming') list = list.filter(b => b.eventDate >= today && b.status !== 'CANCELLED');
+    if (currentView === 'past')     list = list.filter(b => b.eventDate < today || b.status === 'COMPLETED');
+    if (status) list = list.filter(b => b.status === status);
+    if (date)   list = list.filter(b => b.eventDate === date);
+    if (search) list = list.filter(b =>
+        String(b.id).includes(search) ||
+        (b.location || '').toLowerCase().includes(search) ||
+        (b.notes || '').toLowerCase().includes(search)
+    );
+
+    renderBookings(list);
+}
+
+function clearFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('statusFilter').value = '';
+    document.getElementById('dateFilter').value = '';
+    applyFilter();
+}
+
+function renderBookings(list) {
+    if (!list.length) {
+        document.getElementById('bookingsList').innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-calendar-times"></i>
+                <h5>No bookings found</h5>
+                <p>Try adjusting your filters or create a new booking</p>
+                <a href="booking-form.html" class="btn-gold mt-3"><i class="fas fa-plus"></i> New Booking</a>
+            </div>`;
+        return;
+    }
+
+    document.getElementById('bookingsList').innerHTML = list.map(b => {
+        const d = b.eventDate ? new Date(b.eventDate) : null;
+        return `
+        <div class="booking-card" style="cursor:pointer" onclick="openDetail(${b.id})">
+            <div style="min-width:60px;text-align:center">
+                ${d ? `
+                <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:1px;color:#D4A017;font-weight:700">${d.toLocaleString('default',{month:'short'})}</div>
+                <div style="font-size:2.2rem;font-weight:800;color:#F0F0F0;line-height:1">${d.getDate().toString().padStart(2,'0')}</div>
+                <div style="font-size:.7rem;color:#555">${d.getFullYear()}</div>
+                ` : '<div style="font-size:1.5rem;color:#444">?</div>'}
+            </div>
+            <div style="flex:1">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+                    <span style="font-size:1.1rem;font-weight:800;color:#F0F0F0">Booking #${b.id}</span>
+                    ${Utils.statusBadge(b.status)}
+                </div>
+                <div style="font-size:.85rem;color:#888;margin-bottom:4px">
+                    <i class="fas fa-map-marker-alt me-1" style="color:#D4A017"></i>${b.location || 'Location TBD'}
+                    &nbsp;•&nbsp;
+                    <i class="fas fa-dollar-sign me-1" style="color:#2ECC71"></i>${b.totalAmount?.toFixed(2) || '0.00'}
+                </div>
+                <div style="font-size:.78rem;color:#555">
+                    Staff ID: ${b.staffId || '—'} &nbsp;|&nbsp; Package ID: ${b.packageId || '—'}
+                </div>
+                ${b.notes ? `<div style="font-size:.78rem;color:#555;margin-top:6px;font-style:italic;border-left:2px solid #2a2a2a;padding-left:10px">${b.notes}</div>` : ''}
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+                <div style="font-size:.7rem;color:#555">${Utils.formatDateTime(b.createdAt)}</div>
+                <div style="display:flex;gap:6px">
+                    ${b.status === 'PENDING' ? `<button class="btn-gold" style="padding:6px 12px;font-size:.78rem" onclick="event.stopPropagation();quickConfirm(${b.id})"><i class="fas fa-check"></i> Confirm</button>` : ''}
+                    ${(b.status === 'PENDING' || b.status === 'CONFIRMED') ? `<button class="btn-danger-ghost" style="padding:6px 12px" onclick="event.stopPropagation();quickCancel(${b.id})"><i class="fas fa-times"></i></button>` : ''}
+                    ${b.status === 'CONFIRMED' ? `<button class="btn-ghost" style="padding:6px 12px;font-size:.78rem" onclick="event.stopPropagation();quickComplete(${b.id})"><i class="fas fa-flag-checkered"></i> Complete</button>` : ''}
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+let currentBookingId = null;
+
+function openDetail(id) {
+    const b = allBookings.find(x => x.id === id);
+    if (!b) return;
+    currentBookingId = id;
+
+    document.getElementById('editModalBody').innerHTML = `
+        <div class="row g-3">
+            <div class="col-6"><div style="font-size:.72rem;color:#666;text-transform:uppercase">Booking ID</div><div style="font-weight:700;color:#D4A017">#${b.id}</div></div>
+            <div class="col-6"><div style="font-size:.72rem;color:#666;text-transform:uppercase">Status</div>${Utils.statusBadge(b.status)}</div>
+            <div class="col-6"><div style="font-size:.72rem;color:#666;text-transform:uppercase">Event Date</div><div style="font-weight:600">${Utils.formatDate(b.eventDate)}</div></div>
+            <div class="col-6"><div style="font-size:.72rem;color:#666;text-transform:uppercase">Amount</div><div style="font-weight:700;color:#2ECC71;font-size:1.1rem">$${b.totalAmount?.toFixed(2)||'0.00'}</div></div>
+            <div class="col-12"><div style="font-size:.72rem;color:#666;text-transform:uppercase">Location</div><div style="font-weight:600">${b.location||'—'}</div></div>
+            <div class="col-6"><div style="font-size:.72rem;color:#666;text-transform:uppercase">User ID</div><div>${b.userId||'—'}</div></div>
+            <div class="col-6"><div style="font-size:.72rem;color:#666;text-transform:uppercase">Staff ID</div><div>${b.staffId||'—'}</div></div>
+            <div class="col-6"><div style="font-size:.72rem;color:#666;text-transform:uppercase">Package ID</div><div>${b.packageId||'—'}</div></div>
+            <div class="col-6"><div style="font-size:.72rem;color:#666;text-transform:uppercase">Created</div><div style="font-size:.8rem">${Utils.formatDateTime(b.createdAt)}</div></div>
+            ${b.notes ? `<div class="col-12"><div style="font-size:.72rem;color:#666;text-transform:uppercase">Notes</div><div style="font-style:italic;color:#888">${b.notes}</div></div>` : ''}
+        </div>`;
+
+    const confirmBtn = document.getElementById('confirmBtn');
+    const cancelBtn  = document.getElementById('cancelBtn');
+    confirmBtn.style.display = b.status === 'PENDING' ? 'flex' : 'none';
+    cancelBtn.style.display  = (b.status === 'PENDING' || b.status === 'CONFIRMED') ? 'flex' : 'none';
+
+    confirmBtn.onclick = () => quickConfirm(id);
+    cancelBtn.onclick  = () => quickCancel(id);
+
+    new bootstrap.Modal(document.getElementById('editModal')).show();
+}
+
+async function quickConfirm(id) {
+    try {
+        await API.bookings.confirm(id);
+        Toast.success(`Booking #${id} confirmed!`);
+        bootstrap.Modal.getInstance(document.getElementById('editModal'))?.hide();
+        await loadBookings();
+    } catch(e) { Toast.error(e.message); }
+}
+
+async function quickCancel(id) {
+    if (!await Utils.confirmDialog(`Cancel booking #${id}?`)) return;
+    try {
+        await API.bookings.cancel(id);
+        Toast.info(`Booking #${id} cancelled`);
+        bootstrap.Modal.getInstance(document.getElementById('editModal'))?.hide();
+        await loadBookings();
+    } catch(e) { Toast.error(e.message); }
+}
+
+async function quickComplete(id) {
+    if (!await Utils.confirmDialog(`Mark booking #${id} as completed?`)) return;
+    try {
+        await API.bookings.complete(id);
+        Toast.success(`Booking #${id} completed!`);
+        await loadBookings();
+    } catch(e) { Toast.error(e.message); }
+}
+
+loadBookings();
+</script>
+</body>
+</html>

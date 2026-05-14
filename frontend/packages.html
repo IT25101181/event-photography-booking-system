@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Event Packages — LuminaShot</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="css/style.css" rel="stylesheet">
+<style>
+.pkg-card { background:#1e1e1e; border:1px solid #2a2a2a; border-radius:14px; overflow:hidden; transition:all .2s; }
+.pkg-card:hover { border-color:rgba(212,160,23,.4); transform:translateY(-3px); box-shadow:0 8px 32px rgba(0,0,0,.3); }
+.pkg-header { padding:20px; background:linear-gradient(135deg, rgba(212,160,23,.12), rgba(212,160,23,.04)); border-bottom:1px solid #2a2a2a; }
+.pkg-body { padding:18px; }
+.pkg-feature { display:flex; align-items:center; gap:8px; font-size:.8rem; color:#888; padding:4px 0; }
+.pkg-feature i { color:#D4A017; width:14px; font-size:.75rem; }
+.pkg-price { font-size:2rem; font-weight:900; color:#D4A017; }
+</style>
+</head>
+<body>
+<div id="sidebar-root"></div>
+
+<div class="main-content fade-in">
+    <div class="page-header d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="page-title">Event Packages</h1>
+            <p class="page-subtitle">Photography and videography service packages for every occasion.</p>
+        </div>
+        <button class="btn-gold" data-bs-toggle="modal" data-bs-target="#pkgModal" onclick="openAddModal()">
+            <i class="fas fa-plus"></i> New Package
+        </button>
+    </div>
+
+    <!-- Filters -->
+    <div class="card-dark mb-4">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" class="form-control-dark" id="searchInput" placeholder="Search packages..." oninput="applyFilter()">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select class="form-control-dark" id="eventTypeFilter" onchange="applyFilter()">
+                    <option value="">All Event Types</option>
+                    <option value="WEDDING">Wedding</option>
+                    <option value="BIRTHDAY">Birthday</option>
+                    <option value="ENGAGEMENT">Engagement</option>
+                    <option value="CORPORATE">Corporate</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select class="form-control-dark" id="pkgTypeFilter" onchange="applyFilter()">
+                    <option value="">All Package Types</option>
+                    <option value="PHOTOGRAPHY">Photography</option>
+                    <option value="VIDEOGRAPHY">Videography</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn-ghost w-100" onclick="clearFilters()"><i class="fas fa-times"></i> Clear</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="packagesContainer">
+        <div class="empty-state"><div class="spinner-gold mx-auto"></div></div>
+    </div>
+</div>
+
+<!-- Package Modal -->
+<div class="modal fade modal-dark" id="pkgModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="pkgModalTitle"><i class="fas fa-box-open me-2" style="color:#D4A017"></i> Add Package</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="pkgId">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label-dark">Package Name *</label>
+                        <input type="text" id="pkgName" class="form-control-dark" placeholder="Diamond Elite Production">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-dark">Package Type *</label>
+                        <select id="pkgType" class="form-control-dark" onchange="togglePkgFields()">
+                            <option value="PHOTOGRAPHY">Photography</option>
+                            <option value="VIDEOGRAPHY">Videography</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-dark">Event Type *</label>
+                        <select id="pkgEventType" class="form-control-dark">
+                            <option value="WEDDING">Wedding</option>
+                            <option value="BIRTHDAY">Birthday</option>
+                            <option value="ENGAGEMENT">Engagement</option>
+                            <option value="CORPORATE">Corporate</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-dark">Price ($) *</label>
+                        <input type="number" id="pkgPrice" class="form-control-dark" placeholder="1500" min="0">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-dark">Duration</label>
+                        <input type="text" id="pkgDuration" class="form-control-dark" placeholder="8 hours, Full Day...">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label-dark">Description</label>
+                        <textarea id="pkgDesc" class="form-control-dark" rows="2" placeholder="Package details..." style="resize:vertical"></textarea>
+                    </div>
+
+                    <!-- Photography-specific -->
+                    <div id="photoFields">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label-dark">No. of Photographers</label>
+                                <input type="number" id="numPhoto" class="form-control-dark" placeholder="2" min="1">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label-dark">Includes Album?</label>
+                                <select id="incAlbum" class="form-control-dark">
+                                    <option value="true">Yes</option>
+                                    <option value="false">No</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label-dark">Includes Prints?</label>
+                                <select id="incPrints" class="form-control-dark">
+                                    <option value="true">Yes</option>
+                                    <option value="false">No</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Videography-specific -->
+                    <div id="videoFields" style="display:none">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label-dark">No. of Videographers</label>
+                                <input type="number" id="numVideo" class="form-control-dark" placeholder="2" min="1">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label-dark">Drone Shot?</label>
+                                <select id="incDrone" class="form-control-dark">
+                                    <option value="true">Yes</option>
+                                    <option value="false">No</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label-dark">Video Length</label>
+                                <input type="text" id="videoLen" class="form-control-dark" placeholder="5-10 min highlight">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-ghost" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn-gold" id="pkgSaveBtn" onclick="savePackage()"><i class="fas fa-save"></i> Save Package</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/sidebar.js"></script>
+<script>
+initPage('packages');
+
+let allPackages = [];
+
+async function loadPackages() {
+    try {
+        allPackages = await API.packages.getAll();
+        applyFilter();
+    } catch(e) { Toast.error('Failed to load packages'); }
+}
+
+function applyFilter() {
+    const q    = document.getElementById('searchInput').value.toLowerCase();
+    const evt  = document.getElementById('eventTypeFilter').value;
+    const type = document.getElementById('pkgTypeFilter').value;
+
+    let list = [...allPackages];
+    if (q)    list = list.filter(p => p.packageName.toLowerCase().includes(q) || (p.description||'').toLowerCase().includes(q));
+    if (evt)  list = list.filter(p => p.eventType === evt);
+    if (type) list = list.filter(p => p.packageType === type);
+
+    renderPackages(list);
+}
+
+function clearFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('eventTypeFilter').value = '';
+    document.getElementById('pkgTypeFilter').value = '';
+    applyFilter();
+}
+
+function renderPackages(list) {
+    if (!list.length) {
+        document.getElementById('packagesContainer').innerHTML = `<div class="empty-state"><i class="fas fa-box-open"></i><h5>No packages found</h5><p>Add your first event package</p></div>`;
+        return;
+    }
+
+    document.getElementById('packagesContainer').innerHTML = `
+        <div class="row g-4">${list.map(p => {
+            const isPhoto = p.packageType === 'PHOTOGRAPHY';
+            const features = [];
+            if (isPhoto) {
+                if (p.numPhotographers) features.push({ icon:'fa-camera', label:`${p.numPhotographers} Photographer(s)` });
+                if (p.includesAlbum)    features.push({ icon:'fa-book-open', label:'Includes Photo Album' });
+                if (p.includesPrints)   features.push({ icon:'fa-print', label:'Includes Prints' });
+            } else {
+                if (p.numVideographers) features.push({ icon:'fa-video', label:`${p.numVideographers} Videographer(s)` });
+                if (p.includesDroneShot) features.push({ icon:'fa-helicopter', label:'Drone Shot Included' });
+                if (p.videoLength)       features.push({ icon:'fa-film', label:`Video: ${p.videoLength}` });
+            }
+            if (p.duration) features.push({ icon:'fa-clock', label:p.duration });
+
+            return `
+            <div class="col-md-4 col-sm-6">
+                <div class="pkg-card ${!p.isActive ? 'opacity-50' : ''}">
+                    <div class="pkg-header">
+                        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px">
+                            <span class="badge-status ${isPhoto ? 'badge-gold' : 'badge-completed'}" style="font-size:.7rem">
+                                <i class="fas ${isPhoto ? 'fa-camera' : 'fa-video'}" style="font-size:.6rem"></i> ${p.packageType}
+                            </span>
+                            <span class="badge-status badge-gold" style="font-size:.65rem;background:rgba(212,160,23,.08)">${p.eventType}</span>
+                        </div>
+                        <div style="font-size:1.1rem;font-weight:800;color:#F0F0F0;margin-bottom:4px">${p.packageName}</div>
+                        <div class="pkg-price">$${p.price?.toFixed(2)}</div>
+                    </div>
+                    <div class="pkg-body">
+                        ${p.description ? `<p style="font-size:.8rem;color:#666;margin-bottom:12px">${p.description}</p>` : ''}
+                        <div style="margin-bottom:14px">
+                            ${features.map(f => `<div class="pkg-feature"><i class="fas ${f.icon}"></i>${f.label}</div>`).join('')}
+                        </div>
+                        <div style="display:flex;gap:6px">
+                            <button class="btn-outline-gold" style="flex:1;justify-content:center;font-size:.78rem" onclick="openEditModal(${p.id})">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                            <button class="btn-danger-ghost" style="padding:8px 12px" onclick="deletePackage(${p.id})"><i class="fas fa-trash"></i></button>
+                        </div>
+                        ${!p.isActive ? '<div style="text-align:center;margin-top:8px;font-size:.75rem;color:#E74C3C"><i class="fas fa-ban me-1"></i>Inactive</div>' : ''}
+                    </div>
+                </div>
+            </div>`;
+        }).join('')}</div>`;
+}
+
+function togglePkgFields() {
+    const isPhoto = document.getElementById('pkgType').value === 'PHOTOGRAPHY';
+    document.getElementById('photoFields').style.display = isPhoto ? 'block' : 'none';
+    document.getElementById('videoFields').style.display = isPhoto ? 'none' : 'block';
+}
+
+function openAddModal() {
+    document.getElementById('pkgModalTitle').innerHTML = '<i class="fas fa-plus me-2" style="color:#D4A017"></i> New Package';
+    document.getElementById('pkgId').value = '';
+    ['pkgName','pkgPrice','pkgDuration','pkgDesc','numPhoto','numVideo','videoLen'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    document.getElementById('pkgType').value = 'PHOTOGRAPHY';
+    document.getElementById('pkgEventType').value = 'WEDDING';
+    togglePkgFields();
+}
+
+function openEditModal(id) {
+    const p = allPackages.find(x => x.id === id);
+    if (!p) return;
+    document.getElementById('pkgModalTitle').innerHTML = '<i class="fas fa-edit me-2" style="color:#D4A017"></i> Edit Package';
+    document.getElementById('pkgId').value        = p.id;
+    document.getElementById('pkgName').value      = p.packageName;
+    document.getElementById('pkgType').value      = p.packageType || 'PHOTOGRAPHY';
+    document.getElementById('pkgEventType').value = p.eventType;
+    document.getElementById('pkgPrice').value     = p.price;
+    document.getElementById('pkgDuration').value  = p.duration || '';
+    document.getElementById('pkgDesc').value      = p.description || '';
+    if (p.packageType === 'PHOTOGRAPHY') {
+        document.getElementById('numPhoto').value  = p.numPhotographers || '';
+        document.getElementById('incAlbum').value  = String(p.includesAlbum);
+        document.getElementById('incPrints').value = String(p.includesPrints);
+    } else {
+        document.getElementById('numVideo').value  = p.numVideographers || '';
+        document.getElementById('incDrone').value  = String(p.includesDroneShot);
+        document.getElementById('videoLen').value  = p.videoLength || '';
+    }
+    togglePkgFields();
+    new bootstrap.Modal(document.getElementById('pkgModal')).show();
+}
+
+async function savePackage() {
+    const name  = document.getElementById('pkgName').value.trim();
+    const price = parseFloat(document.getElementById('pkgPrice').value);
+    if (!name || !price) { Toast.warning('Name and price are required'); return; }
+
+    const type = document.getElementById('pkgType').value;
+    const body = {
+        packageName: name, packageType: type,
+        eventType:   document.getElementById('pkgEventType').value,
+        price, duration: document.getElementById('pkgDuration').value,
+        description: document.getElementById('pkgDesc').value
+    };
+
+    if (type === 'PHOTOGRAPHY') {
+        body.numPhotographers = parseInt(document.getElementById('numPhoto').value) || 1;
+        body.includesAlbum   = document.getElementById('incAlbum').value === 'true';
+        body.includesPrints  = document.getElementById('incPrints').value === 'true';
+    } else {
+        body.numVideographers   = parseInt(document.getElementById('numVideo').value) || 1;
+        body.includesDroneShot  = document.getElementById('incDrone').value === 'true';
+        body.videoLength        = document.getElementById('videoLen').value;
+    }
+
+    const btn = document.getElementById('pkgSaveBtn');
+    btn.disabled = true; btn.innerHTML = '<div class="spinner-gold" style="width:16px;height:16px"></div>';
+
+    try {
+        const id = document.getElementById('pkgId').value;
+        if (id) { await API.packages.update(id, body); Toast.success('Package updated!'); }
+        else    { await API.packages.create(body);     Toast.success('Package created!'); }
+        bootstrap.Modal.getInstance(document.getElementById('pkgModal'))?.hide();
+        await loadPackages();
+    } catch(e) { Toast.error(e.message || 'Failed to save'); }
+    finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Save Package'; }
+}
+
+async function deletePackage(id) {
+    const p = allPackages.find(x => x.id === id);
+    if (!await Utils.confirmDialog(`Delete package "${p?.packageName}"?`)) return;
+    try {
+        await API.packages.delete(id);
+        Toast.success('Package deleted');
+        await loadPackages();
+    } catch(e) { Toast.error(e.message); }
+}
+
+loadPackages();
+</script>
+</body>
+</html>

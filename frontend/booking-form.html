@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create Booking — LuminaShot</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="css/style.css" rel="stylesheet">
+<style>
+.step-panel { display:none; }
+.step-panel.active { display:block; animation:fadeIn .3s ease; }
+.package-card { background:#1a1a1a; border:2px solid #2a2a2a; border-radius:12px; padding:18px; cursor:pointer; transition:all .2s; }
+.package-card:hover { border-color:rgba(212,160,23,.4); }
+.package-card.selected { border-color:#D4A017; background:rgba(212,160,23,.08); }
+.staff-card { background:#1a1a1a; border:2px solid #2a2a2a; border-radius:12px; padding:16px; cursor:pointer; transition:all .2s; }
+.staff-card:hover { border-color:rgba(212,160,23,.4); }
+.staff-card.selected { border-color:#D4A017; background:rgba(212,160,23,.08); }
+.summary-row { display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #2a2a2a; font-size:.875rem; }
+.summary-row:last-child { border-bottom:none; }
+.summary-row .label { color:#888; }
+.summary-row .value { color:#F0F0F0; font-weight:600; }
+</style>
+</head>
+<body>
+<div id="sidebar-root"></div>
+
+<div class="main-content fade-in">
+    <div class="page-header">
+        <div style="display:flex;align-items:center;gap:12px">
+            <button onclick="history.back()" class="btn-ghost"><i class="fas fa-arrow-left"></i></button>
+            <div>
+                <h1 class="page-title">Book Your Experience</h1>
+                <p class="page-subtitle">Secure your world-class photography and videography team.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stepper -->
+    <div style="display:flex;align-items:center;margin-bottom:32px;flex-wrap:wrap;gap:4px" id="stepperEl"></div>
+
+    <div class="row g-4">
+        <!-- Main Form -->
+        <div class="col-lg-8">
+
+            <!-- Step 1: Event Details -->
+            <div class="step-panel active card-dark" id="step1">
+                <h4 style="font-weight:700;margin-bottom:4px">1. Event Details</h4>
+                <p style="color:#666;font-size:.875rem;margin-bottom:24px">Tell us about your special occasion.</p>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label-dark">Event Date *</label>
+                        <input type="date" id="eventDate" class="form-control-dark" min="">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-dark">Event Type *</label>
+                        <select id="eventType" class="form-control-dark">
+                            <option value="">Select event type...</option>
+                            <option value="WEDDING">Wedding</option>
+                            <option value="BIRTHDAY">Birthday</option>
+                            <option value="ENGAGEMENT">Engagement</option>
+                            <option value="CORPORATE">Corporate</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label-dark">Venue Location *</label>
+                        <input type="text" id="location" class="form-control-dark" placeholder="Grand Ballroom, The Ritz-Carlton...">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label-dark">Additional Notes</label>
+                        <textarea id="notes" class="form-control-dark" rows="3" placeholder="Special requests, theme, dress code..." style="resize:vertical"></textarea>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-end mt-4">
+                    <button class="btn-gold" onclick="goStep(2)">Continue to Packages <i class="fas fa-arrow-right ms-1"></i></button>
+                </div>
+            </div>
+
+            <!-- Step 2: Select Package -->
+            <div class="step-panel card-dark" id="step2">
+                <h4 style="font-weight:700;margin-bottom:4px">2. Select Package</h4>
+                <p style="color:#666;font-size:.875rem;margin-bottom:20px">Choose a service package that fits your needs.</p>
+                <div class="search-bar mb-3">
+                    <i class="fas fa-search"></i>
+                    <input type="text" class="form-control-dark" id="pkgSearch" placeholder="Search packages..." oninput="filterPackages()">
+                </div>
+                <div id="packagesList" class="row g-3">
+                    <div class="col-12 text-center"><div class="spinner-gold mx-auto my-3"></div></div>
+                </div>
+                <div class="d-flex justify-content-between mt-4">
+                    <button class="btn-ghost" onclick="goStep(1)"><i class="fas fa-arrow-left me-1"></i> Back</button>
+                    <button class="btn-gold" onclick="goStep(3)">Choose Team <i class="fas fa-arrow-right ms-1"></i></button>
+                </div>
+            </div>
+
+            <!-- Step 3: Choose Staff -->
+            <div class="step-panel card-dark" id="step3">
+                <h4 style="font-weight:700;margin-bottom:4px">3. Choose Your Team</h4>
+                <p style="color:#666;font-size:.875rem;margin-bottom:20px">Select a photographer or videographer.</p>
+                <div style="display:flex;gap:8px;margin-bottom:20px">
+                    <button class="btn-ghost" id="filterAll" onclick="filterStaff('')" style="background:rgba(212,160,23,.15);color:#D4A017">All</button>
+                    <button class="btn-ghost" id="filterPhoto" onclick="filterStaff('PHOTOGRAPHER')">Photographers</button>
+                    <button class="btn-ghost" id="filterVideo" onclick="filterStaff('VIDEOGRAPHER')">Videographers</button>
+                </div>
+                <div id="staffList" class="row g-3">
+                    <div class="col-12 text-center"><div class="spinner-gold mx-auto my-3"></div></div>
+                </div>
+                <div class="d-flex justify-content-between mt-4">
+                    <button class="btn-ghost" onclick="goStep(2)"><i class="fas fa-arrow-left me-1"></i> Back</button>
+                    <button class="btn-gold" onclick="goStep(4)">Review Summary <i class="fas fa-arrow-right ms-1"></i></button>
+                </div>
+            </div>
+
+            <!-- Step 4: Summary -->
+            <div class="step-panel card-dark" id="step4">
+                <h4 style="font-weight:700;margin-bottom:4px">4. Review &amp; Confirm</h4>
+                <p style="color:#666;font-size:.875rem;margin-bottom:24px">Review your booking before confirming.</p>
+                <div id="summaryDetails"></div>
+                <div class="d-flex justify-content-between mt-4">
+                    <button class="btn-ghost" onclick="goStep(3)"><i class="fas fa-arrow-left me-1"></i> Back</button>
+                    <button class="btn-gold" id="submitBtn" onclick="submitBooking()" style="padding:12px 28px">
+                        <i class="fas fa-check-circle"></i> Confirm Booking
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Booking Summary Sidebar -->
+        <div class="col-lg-4">
+            <div class="card-dark" style="position:sticky;top:20px">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+                    <i class="fas fa-receipt" style="color:#D4A017;font-size:1.1rem"></i>
+                    <h5 style="margin:0;font-weight:700">Booking Summary</h5>
+                </div>
+                <div class="summary-row"><span class="label">Event Date</span><span class="value" id="sumDate">Pending</span></div>
+                <div class="summary-row"><span class="label">Event Type</span><span class="value" id="sumType">—</span></div>
+                <div class="summary-row"><span class="label">Location</span><span class="value" id="sumLocation">—</span></div>
+                <div class="summary-row"><span class="label">Package</span><span class="value" id="sumPackage">Not Selected</span></div>
+                <div class="summary-row"><span class="label">Staff</span><span class="value" id="sumStaff">Not Selected</span></div>
+                <div style="background:rgba(212,160,23,.08);border:1px solid rgba(212,160,23,.2);border-radius:10px;padding:16px;margin:16px 0;text-align:center">
+                    <div style="font-size:.75rem;color:#888;margin-bottom:4px">Estimated Total</div>
+                    <div style="font-size:2rem;font-weight:900;color:#D4A017" id="sumTotal">$0.00</div>
+                    <div style="font-size:.7rem;color:#555">Taxes & fees calculated at checkout</div>
+                </div>
+                <div style="font-size:.75rem;color:#555;text-align:center"><i class="fas fa-lock me-1"></i>Secure booking process</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/sidebar.js"></script>
+<script>
+initPage('bookings');
+
+let currentStep = 1;
+let selectedPackage = null;
+let selectedStaff = null;
+let allPackages = [], allStaff = [];
+
+// Set min date to today
+document.getElementById('eventDate').min = new Date().toISOString().split('T')[0];
+
+// Stepper render
+function renderStepper() {
+    const steps = ['Event Details', 'Select Package', 'Choose Team', 'Summary'];
+    document.getElementById('stepperEl').innerHTML = steps.map((s, i) => {
+        const n = i + 1;
+        const cls = n < currentStep ? 'done' : n === currentStep ? 'active' : '';
+        return `${i > 0 ? `<div class="step-line ${n <= currentStep ? 'done' : ''}"></div>` : ''}
+        <div class="step ${cls}">
+            <div class="step-circle">${n < currentStep ? '<i class="fas fa-check"></i>' : n}</div>
+            <div class="step-label">${s}</div>
+        </div>`;
+    }).join('');
+}
+
+function goStep(n) {
+    // Validation
+    if (n > 1) {
+        if (!document.getElementById('eventDate').value) { Toast.warning('Please select an event date'); return; }
+        if (!document.getElementById('eventType').value) { Toast.warning('Please select event type'); return; }
+        if (!document.getElementById('location').value.trim()) { Toast.warning('Please enter a location'); return; }
+    }
+    if (n > 2 && !selectedPackage) { Toast.warning('Please select a package'); return; }
+    if (n > 3 && !selectedStaff)   { Toast.warning('Please select a staff member'); return; }
+
+    document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById(`step${n}`).classList.add('active');
+    currentStep = n;
+    renderStepper();
+    updateSummary();
+
+    if (n === 2) loadPackages();
+    if (n === 3) loadStaff();
+    if (n === 4) renderFullSummary();
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function updateSummary() {
+    const d = document.getElementById('eventDate').value;
+    document.getElementById('sumDate').textContent     = d ? Utils.formatDate(d) : 'Pending';
+    document.getElementById('sumType').textContent     = document.getElementById('eventType').value || '—';
+    document.getElementById('sumLocation').textContent = document.getElementById('location').value || '—';
+    document.getElementById('sumPackage').textContent  = selectedPackage?.packageName || 'Not Selected';
+    document.getElementById('sumStaff').textContent    = selectedStaff?.name || 'Not Selected';
+
+    const total = (selectedPackage?.price || 0) + (selectedStaff?.pricePerDay || 0);
+    document.getElementById('sumTotal').textContent = `$${total.toFixed(2)}`;
+}
+
+async function loadPackages() {
+    try {
+        allPackages = await API.packages.getAll();
+        allPackages = allPackages.filter(p => p.isActive);
+        filterPackages();
+    } catch(e) { Toast.error('Failed to load packages'); }
+}
+
+function filterPackages() {
+    const q = document.getElementById('pkgSearch')?.value.toLowerCase() || '';
+    const list = allPackages.filter(p =>
+        p.packageName.toLowerCase().includes(q) ||
+        (p.eventType || '').toLowerCase().includes(q) ||
+        (p.packageType || '').toLowerCase().includes(q)
+    );
+    document.getElementById('packagesList').innerHTML = list.map(p => `
+        <div class="col-md-6">
+            <div class="package-card ${selectedPackage?.id === p.id ? 'selected' : ''}" onclick="selectPackage(${p.id})">
+                <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:10px">
+                    <div>
+                        <div style="font-weight:700;color:#F0F0F0;font-size:.9rem">${p.packageName}</div>
+                        <span class="badge-status badge-gold" style="font-size:.65rem;margin-top:4px">${p.packageType || 'Package'}</span>
+                    </div>
+                    <div style="font-size:1.2rem;font-weight:800;color:#D4A017">$${p.price?.toFixed(2)}</div>
+                </div>
+                <div style="font-size:.78rem;color:#666;margin-bottom:8px">${p.description || ''}</div>
+                <div style="font-size:.75rem;color:#555">
+                    <i class="fas fa-calendar me-1"></i>${p.eventType} &nbsp;
+                    <i class="fas fa-clock me-1 ms-2"></i>${p.duration || 'TBD'}
+                </div>
+                ${selectedPackage?.id === p.id ? '<div style="margin-top:8px;color:#D4A017;font-size:.75rem;font-weight:700"><i class="fas fa-check-circle me-1"></i>Selected</div>' : ''}
+            </div>
+        </div>`).join('') || '<div class="col-12 empty-state"><i class="fas fa-box-open"></i><p>No packages available</p></div>';
+}
+
+function selectPackage(id) {
+    selectedPackage = allPackages.find(p => p.id === id);
+    filterPackages();
+    updateSummary();
+    Toast.info(`Package "${selectedPackage.packageName}" selected`);
+}
+
+async function loadStaff() {
+    try {
+        allStaff = await API.staff.getAvailable();
+        renderStaffCards(allStaff);
+    } catch(e) { Toast.error('Failed to load staff'); }
+}
+
+function filterStaff(type) {
+    const filtered = type ? allStaff.filter(s => s.type === type) : allStaff;
+    renderStaffCards(filtered);
+    document.querySelectorAll('#step3 .btn-ghost').forEach(b => {
+        b.style.background = 'transparent';
+        b.style.color = '#A0A0A0';
+    });
+}
+
+function renderStaffCards(list) {
+    document.getElementById('staffList').innerHTML = list.map(s => `
+        <div class="col-md-6">
+            <div class="staff-card ${selectedStaff?.id === s.id ? 'selected' : ''}" onclick="selectStaff(${s.id})">
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+                    ${Utils.avatarHtml(s.name, 40)}
+                    <div>
+                        <div style="font-weight:700;color:#F0F0F0">${s.name}</div>
+                        <span class="badge-status badge-gold" style="font-size:.65rem">${s.type}</span>
+                    </div>
+                </div>
+                <div style="font-size:.78rem;color:#666;margin-bottom:6px">${s.specialization || ''}</div>
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                    <div style="font-size:.9rem;font-weight:700;color:#D4A017">$${s.pricePerDay}/day</div>
+                    ${selectedStaff?.id === s.id ? '<div style="color:#D4A017;font-size:.75rem;font-weight:700"><i class="fas fa-check-circle me-1"></i>Selected</div>' : '<div style="color:#2ECC71;font-size:.75rem"><i class="fas fa-circle" style="font-size:.5rem;margin-right:4px"></i>Available</div>'}
+                </div>
+            </div>
+        </div>`).join('') || '<div class="col-12 empty-state"><i class="fas fa-users"></i><p>No available staff</p></div>';
+}
+
+function selectStaff(id) {
+    selectedStaff = allStaff.find(s => s.id === id);
+    renderStaffCards(allStaff);
+    updateSummary();
+    Toast.info(`${selectedStaff.name} selected`);
+}
+
+function renderFullSummary() {
+    const total = (selectedPackage?.price || 0) + (selectedStaff?.pricePerDay || 0);
+    document.getElementById('summaryDetails').innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+            <div style="background:#1a1a1a;border-radius:10px;padding:14px">
+                <div style="font-size:.7rem;color:#666;text-transform:uppercase;margin-bottom:4px">Event Date</div>
+                <div style="font-weight:700">${Utils.formatDate(document.getElementById('eventDate').value)}</div>
+            </div>
+            <div style="background:#1a1a1a;border-radius:10px;padding:14px">
+                <div style="font-size:.7rem;color:#666;text-transform:uppercase;margin-bottom:4px">Event Type</div>
+                <div style="font-weight:700">${document.getElementById('eventType').value}</div>
+            </div>
+            <div style="background:#1a1a1a;border-radius:10px;padding:14px;grid-column:1/-1">
+                <div style="font-size:.7rem;color:#666;text-transform:uppercase;margin-bottom:4px">Location</div>
+                <div style="font-weight:700">${document.getElementById('location').value}</div>
+            </div>
+        </div>
+        <div style="background:#1a1a1a;border-radius:10px;padding:16px;margin-bottom:12px">
+            <div style="font-size:.7rem;color:#666;text-transform:uppercase;margin-bottom:8px">Selected Package</div>
+            <div style="display:flex;justify-content:space-between">
+                <div>
+                    <div style="font-weight:700;color:#F0F0F0">${selectedPackage?.packageName}</div>
+                    <div style="font-size:.78rem;color:#666">${selectedPackage?.packageType} • ${selectedPackage?.duration}</div>
+                </div>
+                <div style="font-size:1.1rem;font-weight:800;color:#D4A017">$${selectedPackage?.price?.toFixed(2)}</div>
+            </div>
+        </div>
+        <div style="background:#1a1a1a;border-radius:10px;padding:16px;margin-bottom:20px">
+            <div style="font-size:.7rem;color:#666;text-transform:uppercase;margin-bottom:8px">Selected Staff</div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+                <div style="display:flex;align-items:center;gap:10px">
+                    ${Utils.avatarHtml(selectedStaff?.name, 36)}
+                    <div>
+                        <div style="font-weight:700;color:#F0F0F0">${selectedStaff?.name}</div>
+                        <div style="font-size:.78rem;color:#666">${selectedStaff?.type}</div>
+                    </div>
+                </div>
+                <div style="font-size:1.1rem;font-weight:800;color:#D4A017">$${selectedStaff?.pricePerDay?.toFixed(2)}/day</div>
+            </div>
+        </div>
+        <div style="background:rgba(212,160,23,.08);border:1px solid rgba(212,160,23,.3);border-radius:10px;padding:16px;display:flex;justify-content:space-between;align-items:center">
+            <div style="font-weight:700;font-size:1rem">Total Amount</div>
+            <div style="font-size:1.5rem;font-weight:900;color:#D4A017">$${total.toFixed(2)}</div>
+        </div>`;
+}
+
+async function submitBooking() {
+    const btn = document.getElementById('submitBtn');
+    btn.innerHTML = '<div class="spinner-gold" style="width:16px;height:16px"></div> Processing...';
+    btn.disabled = true;
+
+    const total = (selectedPackage?.price || 0) + (selectedStaff?.pricePerDay || 0);
+
+    try {
+        await API.bookings.create({
+            userId:      1, // In real app, get from auth
+            staffId:     selectedStaff.id,
+            packageId:   selectedPackage.id,
+            eventDate:   document.getElementById('eventDate').value,
+            location:    document.getElementById('location').value,
+            totalAmount: total,
+            notes:       document.getElementById('notes').value
+        });
+        Toast.success('Booking created successfully! 🎉');
+        setTimeout(() => window.location.href = 'bookings.html', 1500);
+    } catch(e) {
+        Toast.error(e.message || 'Failed to create booking');
+        btn.innerHTML = '<i class="fas fa-check-circle"></i> Confirm Booking';
+        btn.disabled = false;
+    }
+}
+
+// Listen to form changes for live summary
+['eventDate','eventType','location'].forEach(id => {
+    document.getElementById(id)?.addEventListener('change', updateSummary);
+    document.getElementById(id)?.addEventListener('input', updateSummary);
+});
+
+renderStepper();
+</script>
+</body>
+</html>

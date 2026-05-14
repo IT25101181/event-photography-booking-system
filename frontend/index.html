@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LuminaShot — Photography Booking System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="css/style.css" rel="stylesheet">
+<style>
+.auth-bg {
+    position: fixed; inset: 0;
+    background: radial-gradient(ellipse at 30% 80%, rgba(212,160,23,0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(212,160,23,0.05) 0%, transparent 50%),
+                #111111;
+    z-index: -1;
+}
+.auth-card { position: relative; }
+.tabs { display: flex; background: #1a1a1a; border-radius: 10px; padding: 4px; margin-bottom: 28px; }
+.tab-btn { flex: 1; padding: 10px; border: none; background: transparent; color: #666; font-weight: 600; border-radius: 7px; cursor: pointer; transition: all .2s; font-family: 'Inter', sans-serif; font-size: .9rem; }
+.tab-btn.active { background: #D4A017; color: #111; }
+.divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; color: #444; font-size: .8rem; }
+.divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: #2a2a2a; }
+.role-select { display: flex; gap: 8px; margin-bottom: 6px; }
+.role-btn { flex: 1; padding: 8px; border: 1px solid #2a2a2a; border-radius: 8px; background: transparent; color: #666; font-size: .8rem; cursor: pointer; transition: all .2s; font-family: 'Inter', sans-serif; }
+.role-btn.selected { border-color: #D4A017; color: #D4A017; background: rgba(212,160,23,.1); }
+.hero-side { display: flex; flex-direction: column; justify-content: center; max-width: 500px; }
+.hero-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(212,160,23,.1); border: 1px solid rgba(212,160,23,.3); border-radius: 20px; padding: 6px 14px; font-size: .8rem; color: #D4A017; font-weight: 600; margin-bottom: 24px; }
+.feature-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #1e1e1e; }
+.feature-icon { width: 36px; height: 36px; border-radius: 9px; background: rgba(212,160,23,.1); display: flex; align-items: center; justify-content: center; color: #D4A017; flex-shrink: 0; }
+</style>
+</head>
+<body>
+<div class="auth-bg"></div>
+
+<div class="container-fluid min-vh-100 d-flex align-items-center">
+    <div class="row w-100 justify-content-center align-items-center g-5 px-3 py-5">
+
+        <!-- Hero Side -->
+        <div class="col-lg-5 hero-side d-none d-lg-flex">
+            <div>
+                <div class="hero-badge"><i class="fas fa-camera"></i> Photography &amp; Videography</div>
+                <h1 style="font-size:2.8rem;font-weight:900;color:#F0F0F0;line-height:1.1;margin-bottom:16px">
+                    Book World-Class<br><span style="color:#D4A017">Creative Talent</span>
+                </h1>
+                <p style="color:#888;font-size:.95rem;margin-bottom:32px;line-height:1.7">
+                    Connect with professional photographers and videographers for your most important moments. Weddings, corporate events, birthdays and more.
+                </p>
+                <div>
+                    <div class="feature-item">
+                        <div class="feature-icon"><i class="fas fa-user-tie"></i></div>
+                        <div><div style="font-weight:600;color:#F0F0F0;font-size:.9rem">Verified Professionals</div><div style="color:#666;font-size:.8rem">All staff background checked & reviewed</div></div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon"><i class="fas fa-calendar-check"></i></div>
+                        <div><div style="font-weight:600;color:#F0F0F0;font-size:.9rem">Instant Booking</div><div style="color:#666;font-size:.8rem">Real-time availability & instant confirmation</div></div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon"><i class="fas fa-star"></i></div>
+                        <div><div style="font-weight:600;color:#F0F0F0;font-size:.9rem">Transparent Reviews</div><div style="color:#666;font-size:.8rem">Genuine ratings from verified clients</div></div>
+                    </div>
+                    <div class="feature-item" style="border-bottom:none">
+                        <div class="feature-icon"><i class="fas fa-shield-alt"></i></div>
+                        <div><div style="font-weight:600;color:#F0F0F0;font-size:.9rem">Secure Payments</div><div style="color:#666;font-size:.8rem">Protected transactions every time</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Auth Card -->
+        <div class="col-lg-4 col-md-6">
+            <div class="auth-card">
+                <div class="auth-logo">LuminaShot</div>
+                <div class="auth-subtitle">Photography &amp; Booking Management</div>
+
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="switchTab('login')">Sign In</button>
+                    <button class="tab-btn" onclick="switchTab('register')">Register</button>
+                </div>
+
+                <!-- LOGIN FORM -->
+                <div id="loginForm">
+                    <div class="mb-3">
+                        <label class="form-label-dark">Email Address</label>
+                        <input type="email" id="loginEmail" class="form-control-dark" placeholder="you@example.com">
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label-dark">Password</label>
+                        <div style="position:relative">
+                            <input type="password" id="loginPassword" class="form-control-dark" placeholder="••••••••" style="padding-right:40px">
+                            <button onclick="togglePw('loginPassword')" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:#666;cursor:pointer"><i class="fas fa-eye" id="loginEye"></i></button>
+                        </div>
+                    </div>
+                    <button class="btn-gold w-100 justify-content-center py-3" id="loginBtn" onclick="doLogin()">
+                        <i class="fas fa-sign-in-alt"></i> Sign In
+                    </button>
+                    <div class="divider">Quick Access Demo</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                        <button class="btn-ghost w-100 justify-content-center" onclick="fillDemo('admin@photobooking.com','Admin@1234')">
+                            <i class="fas fa-user-shield"></i> Admin Demo
+                        </button>
+                        <button class="btn-ghost w-100 justify-content-center" onclick="fillDemo('user@demo.com','user123')">
+                            <i class="fas fa-user"></i> User Demo
+                        </button>
+                    </div>
+                </div>
+
+                <!-- REGISTER FORM -->
+                <div id="registerForm" style="display:none">
+                    <div class="mb-3">
+                        <label class="form-label-dark">Full Name</label>
+                        <input type="text" id="regName" class="form-control-dark" placeholder="John Smith">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label-dark">Email Address</label>
+                        <input type="email" id="regEmail" class="form-control-dark" placeholder="you@example.com">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label-dark">Password</label>
+                        <input type="password" id="regPassword" class="form-control-dark" placeholder="Min. 6 characters">
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label-dark">Account Type</label>
+                        <div class="role-select">
+                            <button class="role-btn selected" id="roleUser" onclick="selectRole('USER')">
+                                <i class="fas fa-user me-1"></i> User
+                            </button>
+                            <button class="role-btn" id="roleAdmin" onclick="selectRole('ADMIN')">
+                                <i class="fas fa-user-shield me-1"></i> Admin
+                            </button>
+                        </div>
+                    </div>
+                    <button class="btn-gold w-100 justify-content-center py-3" id="regBtn" onclick="doRegister()">
+                        <i class="fas fa-user-plus"></i> Create Account
+                    </button>
+                </div>
+
+                <p style="text-align:center;color:#444;font-size:.75rem;margin-top:24px">
+                    By continuing, you agree to our Terms of Service and Privacy Policy.
+                </p>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script>
+let selectedRole = 'USER';
+
+// Redirect if already logged in
+if (Auth.isLoggedIn()) redirectUser();
+
+function redirectUser() {
+    const user = Auth.getUser();
+    if (user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') {
+        window.location.href = 'admin-dashboard.html';
+    } else {
+        window.location.href = 'dashboard.html';
+    }
+}
+
+function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', (i === 0) === (tab === 'login')));
+    document.getElementById('loginForm').style.display    = tab === 'login' ? 'block' : 'none';
+    document.getElementById('registerForm').style.display = tab === 'register' ? 'block' : 'none';
+}
+
+function selectRole(role) {
+    selectedRole = role;
+    document.getElementById('roleUser').classList.toggle('selected', role === 'USER');
+    document.getElementById('roleAdmin').classList.toggle('selected', role === 'ADMIN');
+}
+
+function togglePw(id) {
+    const inp = document.getElementById(id);
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+function fillDemo(email, pw) {
+    document.getElementById('loginEmail').value    = email;
+    document.getElementById('loginPassword').value = pw;
+    Toast.info('Demo credentials filled — click Sign In');
+}
+
+async function doLogin() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    if (!email || !password) { Toast.warning('Please fill in all fields'); return; }
+
+    const btn = document.getElementById('loginBtn');
+    btn.innerHTML = '<div class="spinner-gold" style="width:18px;height:18px"></div> Signing in...';
+    btn.disabled = true;
+
+    try {
+        const res = await API.auth.login({ email, password });
+        Auth.setSession(res.token, { email: res.email, role: res.role, fullName: res.fullName });
+        Toast.success(`Welcome back, ${res.fullName}!`);
+        setTimeout(() => redirectUser(), 800);
+    } catch (e) {
+        Toast.error(e.message || 'Invalid email or password');
+        btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In';
+        btn.disabled = false;
+    }
+}
+
+async function doRegister() {
+    const fullName = document.getElementById('regName').value.trim();
+    const email    = document.getElementById('regEmail').value.trim();
+    const password = document.getElementById('regPassword').value;
+    if (!fullName || !email || !password) { Toast.warning('Please fill in all fields'); return; }
+    if (password.length < 6) { Toast.warning('Password must be at least 6 characters'); return; }
+
+    const btn = document.getElementById('regBtn');
+    btn.innerHTML = '<div class="spinner-gold" style="width:18px;height:18px"></div> Creating...';
+    btn.disabled = true;
+
+    try {
+        await API.auth.register({ fullName, email, password, role: selectedRole });
+        Toast.success('Account created! Please sign in.');
+        switchTab('login');
+        document.getElementById('loginEmail').value = email;
+    } catch (e) {
+        Toast.error(e.message || 'Registration failed');
+    } finally {
+        btn.innerHTML = '<i class="fas fa-user-plus"></i> Create Account';
+        btn.disabled = false;
+    }
+}
+
+document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+        const loginVisible = document.getElementById('loginForm').style.display !== 'none';
+        if (loginVisible) doLogin(); else doRegister();
+    }
+});
+</script>
+</body>
+</html>
