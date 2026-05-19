@@ -48,6 +48,7 @@ public class BookingServiceImpl implements BookingService {
         return mapToDto(bookingRepository.save(booking));
     }
 
+    
     @Override
     public BookingResponseDto getBookingById(Long id) {
         Booking booking = bookingRepository.findById(id)
