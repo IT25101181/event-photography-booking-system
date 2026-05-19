@@ -1,4 +1,5 @@
 package com.photobooking.review.dto;
+
 import jakarta.validation.constraints.*;
 import lombok.Data;
 
@@ -10,7 +11,6 @@ public class ReviewRequestDto {
     @NotNull(message = "Staff ID is required")
     private Long staffId;
 
-    @NotNull(message = "Booking ID is required")
     private Long bookingId;
 
     @NotNull(message = "Rating is required")

@@ -15,13 +15,15 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class ReviewServiceImpl implements ReviewService {
-    
+
     private final ReviewRepository reviewRepository;
+    private final com.photobooking.booking.repository.BookingRepository bookingRepository;
     private final ModelMapper modelMapper;
 
     @Override
     public ReviewResponseDto addReview(ReviewRequestDto dto) {
-        if (reviewRepository.existsByBookingId(dto.getBookingId())) {
+        // If booking ID is provided, we can still check for duplicates, but it's optional now
+        if (dto.getBookingId() != null && reviewRepository.existsByBookingId(dto.getBookingId())) {
             throw new IllegalStateException("A review already exists for this booking");
         }
 
@@ -73,6 +75,10 @@ public class ReviewServiceImpl implements ReviewService {
     public ReviewResponseDto updateReview(Long id, ReviewRequestDto dto) {
         Review review = reviewRepository.findById(id)
                 .orElseThrow(() -> new ReviewNotFoundException(id));
+
+        if (!review.getUserId().equals(dto.getUserId())) {
+            throw new IllegalArgumentException("You can only update your own reviews");
+        }
 
         review.setRating(dto.getRating());
         review.setComment(dto.getComment());
