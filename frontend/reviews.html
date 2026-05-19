@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Reviews — LuminaShot</title>
+<title>Reviews — Snapix</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -85,7 +85,7 @@
                 </select>
             </div>
             <div class="col-md-3">
-                <input type="text" class="form-control-dark" id="staffIdFilter" placeholder="Filter by Staff ID..." oninput="applyFilter()">
+                <input type="text" class="form-control-dark" id="staffNameFilter" placeholder="Filter by Staff Name..." oninput="applyFilter()">
             </div>
             <div class="col-md-2">
                 <button class="btn-ghost w-100" onclick="clearFilters()"><i class="fas fa-times"></i> Clear</button>
@@ -112,17 +112,15 @@
             </div>
             <div class="modal-body">
                 <input type="hidden" id="reviewId">
-                <div class="mb-3">
+                <div class="mb-3" id="userIdField" style="display:none">
                     <label class="form-label-dark">User ID *</label>
-                    <input type="number" id="rvUserId" class="form-control-dark" placeholder="1">
+                    <input type="number" id="rvUserId" class="form-control-dark">
                 </div>
                 <div class="mb-3">
-                    <label class="form-label-dark">Staff ID *</label>
-                    <input type="number" id="rvStaffId" class="form-control-dark" placeholder="1">
-                </div>
-                <div class="mb-3">
-                    <label class="form-label-dark">Booking ID *</label>
-                    <input type="number" id="rvBookingId" class="form-control-dark" placeholder="1">
+                    <label class="form-label-dark">Select Staff Member *</label>
+                    <select id="rvStaffId" class="form-control-dark">
+                        <option value="">Loading staff...</option>
+                    </select>
                 </div>
                 <div class="mb-3">
                     <label class="form-label-dark">Your Rating *</label>
@@ -155,6 +153,23 @@
 initPage('reviews');
 
 let allReviews = [];
+let allStaff = [];
+let allUsers = [];
+
+async function loadUsers() {
+    try {
+        allUsers = await API.users.getAll();
+    } catch(e) { console.error('Failed to load user list', e); }
+}
+
+async function loadStaff() {
+    try {
+        allStaff = await API.staff.getAll();
+        const select = document.getElementById('rvStaffId');
+        select.innerHTML = '<option value="">Choose a staff member...</option>' + 
+            allStaff.map(s => `<option value="${s.id}">${s.name} (${s.type})</option>`).join('');
+    } catch(e) { console.error('Failed to load staff list', e); }
+}
 
 async function loadReviews() {
     try {
@@ -207,12 +222,17 @@ function renderDistribution() {
 function applyFilter() {
     const q      = document.getElementById('searchInput').value.toLowerCase();
     const rating = parseInt(document.getElementById('ratingFilter').value) || 0;
-    const staffId= document.getElementById('staffIdFilter').value;
+    const sName  = document.getElementById('staffNameFilter').value.toLowerCase();
 
     let list = [...allReviews];
     if (q)       list = list.filter(r => r.comment.toLowerCase().includes(q));
     if (rating)  list = list.filter(r => r.rating === rating);
-    if (staffId) list = list.filter(r => String(r.staffId) === staffId);
+    if (sName) {
+        list = list.filter(r => {
+            const staff = allStaff.find(s => s.id === r.staffId);
+            return staff && staff.name.toLowerCase().includes(sName);
+        });
+    }
 
     renderReviews(list);
 }
@@ -220,7 +240,7 @@ function applyFilter() {
 function clearFilters() {
     document.getElementById('searchInput').value = '';
     document.getElementById('ratingFilter').value = '';
-    document.getElementById('staffIdFilter').value = '';
+    document.getElementById('staffNameFilter').value = '';
     applyFilter();
 }
 
@@ -235,15 +255,15 @@ function renderReviews(list) {
             <div class="review-card">
                 <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">
                     <div style="display:flex;align-items:center;gap:10px">
-                        ${Utils.avatarHtml('User ' + r.userId, 36)}
+                        ${Utils.avatarHtml(allUsers.find(u => u.id === r.userId)?.fullName || 'User ' + r.userId, 36)}
                         <div>
-                            <div style="font-weight:700;font-size:.875rem;color:#F0F0F0">User #${r.userId}</div>
-                            <div style="font-size:.72rem;color:#555">Staff #${r.staffId}</div>
+                            <div style="font-weight:700;font-size:.875rem;color:#F0F0F0">${allUsers.find(u => u.id === r.userId)?.fullName || 'User #' + r.userId}</div>
+                            <div style="font-size:.72rem;color:#555">${allStaff.find(s => s.id === r.staffId)?.name || 'Staff #' + r.staffId}</div>
                         </div>
                     </div>
                     <div style="display:flex;gap:4px">
-                        <button class="btn-ghost" style="padding:4px 8px;font-size:.72rem" onclick="openEditModal(${r.id})"><i class="fas fa-edit"></i></button>
-                        <button class="btn-danger-ghost" style="padding:4px 8px" onclick="deleteReview(${r.id})"><i class="fas fa-trash"></i></button>
+                        ${r.userId === Auth.getUser()?.id ? `<button class="btn-ghost" style="padding:4px 8px;font-size:.72rem" onclick="openEditModal(${r.id})"><i class="fas fa-edit"></i></button>` : ''}
+                        ${(r.userId === Auth.getUser()?.id || Auth.getUser()?.role === 'ADMIN' || Auth.getUser()?.role === 'SUPER_ADMIN') ? `<button class="btn-danger-ghost" style="padding:4px 8px" onclick="deleteReview(${r.id})"><i class="fas fa-trash"></i></button>` : ''}
                     </div>
                 </div>
                 <div style="margin-bottom:10px">${Utils.stars(r.rating)}</div>
@@ -274,7 +294,12 @@ function updateStarDisplay(n) {
 function openAddModal() {
     document.getElementById('reviewModalTitle').innerHTML = '<i class="fas fa-star me-2" style="color:#D4A017"></i> Write a Review';
     document.getElementById('reviewId').value = '';
-    ['rvUserId','rvStaffId','rvBookingId','rvComment'].forEach(id => document.getElementById(id).value = '');
+    
+    const user = Auth.getUser();
+    document.getElementById('rvUserId').value = user ? user.id : '';
+    
+    document.getElementById('rvStaffId').value = '';
+    document.getElementById('rvComment').value = '';
     selectedRating = 0;
     document.getElementById('rvRating').value = 0;
     updateStarDisplay(0);
@@ -286,8 +311,14 @@ function openEditModal(id) {
     document.getElementById('reviewModalTitle').innerHTML = '<i class="fas fa-edit me-2" style="color:#D4A017"></i> Edit Review';
     document.getElementById('reviewId').value    = r.id;
     document.getElementById('rvUserId').value    = r.userId;
-    document.getElementById('rvStaffId').value   = r.staffId;
-    document.getElementById('rvBookingId').value = r.bookingId;
+    
+    // For edit, we just show the staff name as a single option
+    const s = allStaff.find(x => x.id === r.staffId);
+    document.getElementById('rvStaffId').innerHTML = `<option value="${r.staffId}">${s ? s.name : 'Staff #' + r.staffId}</option>`;
+    
+    // For booking, we can just omit it or keep it 0
+    // document.getElementById('rvBookingId').innerHTML = `<option value="${r.bookingId}">Booking #${r.bookingId}</option>`;
+    
     document.getElementById('rvComment').value   = r.comment;
     selectedRating = r.rating;
     document.getElementById('rvRating').value = r.rating;
@@ -304,7 +335,7 @@ async function saveReview() {
     const body = {
         userId:    parseInt(document.getElementById('rvUserId').value),
         staffId:   parseInt(document.getElementById('rvStaffId').value),
-        bookingId: parseInt(document.getElementById('rvBookingId').value),
+        bookingId: null, // No longer required
         rating, comment
     };
 
@@ -330,7 +361,7 @@ async function deleteReview(id) {
     } catch(e) { Toast.error(e.message); }
 }
 
-loadReviews();
+Promise.all([loadUsers(), loadStaff()]).then(() => loadReviews());
 </script>
 </body>
 </html>

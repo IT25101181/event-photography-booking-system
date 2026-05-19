@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Create Booking — LuminaShot</title>
+<title>Create Booking — Snapix</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -90,7 +90,10 @@
                 </div>
                 <div class="d-flex justify-content-between mt-4">
                     <button class="btn-ghost" onclick="goStep(1)"><i class="fas fa-arrow-left me-1"></i> Back</button>
-                    <button class="btn-gold" onclick="goStep(3)">Choose Team <i class="fas fa-arrow-right ms-1"></i></button>
+                    <div style="display:flex;gap:10px">
+                        <button class="btn-outline-gold" onclick="skipPackage()">Skip Package <i class="fas fa-forward ms-1"></i></button>
+                        <button class="btn-gold" onclick="goStep(3)">Choose Team <i class="fas fa-arrow-right ms-1"></i></button>
+                    </div>
                 </div>
             </div>
 
@@ -157,8 +160,10 @@ initPage('bookings');
 
 let currentStep = 1;
 let selectedPackage = null;
-let selectedStaff = null;
+let skipPackageSelected = false;
+let selectedStaffs = []; // Now an array
 let allPackages = [], allStaff = [];
+let editingBookingId = null;
 
 // Set min date to today
 document.getElementById('eventDate').min = new Date().toISOString().split('T')[0];
@@ -177,6 +182,42 @@ function renderStepper() {
     }).join('');
 }
 
+async function checkEditMode() {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('edit');
+    if (id) {
+        editingBookingId = id;
+        document.querySelector('.page-title').textContent = `Edit Booking #${id}`;
+        document.querySelector('.page-subtitle').textContent = 'Modify your event details and creative team.';
+        document.getElementById('submitBtn').innerHTML = '<i class="fas fa-save"></i> Save Changes';
+        
+        try {
+            const b = await API.bookings.getById(id);
+            document.getElementById('eventDate').value = b.eventDate;
+            document.getElementById('location').value = b.location || '';
+            document.getElementById('notes').value = b.notes || '';
+            
+            // We need to load packages and staff to match them
+            await loadPackages();
+            if (b.packageId) {
+                selectedPackage = allPackages.find(p => p.id === b.packageId);
+            }
+            
+            await loadStaff();
+            if (b.staffIds) {
+                selectedStaffs = allStaff.filter(s => b.staffIds.includes(s.id));
+            }
+            
+            updateSummary();
+            filterPackages();
+            renderStaffCards(allStaff);
+        } catch(e) {
+            Toast.error('Failed to load booking details');
+            console.error(e);
+        }
+    }
+}
+
 function goStep(n) {
     // Validation
     if (n > 1) {
@@ -184,8 +225,11 @@ function goStep(n) {
         if (!document.getElementById('eventType').value) { Toast.warning('Please select event type'); return; }
         if (!document.getElementById('location').value.trim()) { Toast.warning('Please enter a location'); return; }
     }
-    if (n > 2 && !selectedPackage) { Toast.warning('Please select a package'); return; }
-    if (n > 3 && !selectedStaff)   { Toast.warning('Please select a staff member'); return; }
+    // Validation removed for package if we want to allow skipping
+    if (n > 3 && selectedStaffs.length < getRequiredStaffCount()) { 
+        Toast.warning(`Please select ${getRequiredStaffCount()} team member(s) for this package`); 
+        return; 
+    }
 
     document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
     document.getElementById(`step${n}`).classList.add('active');
@@ -194,7 +238,10 @@ function goStep(n) {
     updateSummary();
 
     if (n === 2) loadPackages();
-    if (n === 3) loadStaff();
+    if (n === 3) {
+        selectedStaffs = []; // Reset staff when going back to step 3 or forward
+        loadStaff();
+    }
     if (n === 4) renderFullSummary();
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -206,10 +253,25 @@ function updateSummary() {
     document.getElementById('sumType').textContent     = document.getElementById('eventType').value || '—';
     document.getElementById('sumLocation').textContent = document.getElementById('location').value || '—';
     document.getElementById('sumPackage').textContent  = selectedPackage?.packageName || 'Not Selected';
-    document.getElementById('sumStaff').textContent    = selectedStaff?.name || 'Not Selected';
+    document.getElementById('sumStaff').textContent    = selectedStaffs.length > 0 ? `${selectedStaffs.length} Selected` : 'Not Selected';
 
-    const total = (selectedPackage?.price || 0) + (selectedStaff?.pricePerDay || 0);
+    const staffTotal = selectedStaffs.reduce((acc, s) => acc + (s.pricePerDay || 0), 0);
+    const total = (selectedPackage?.price || 0) + staffTotal;
     document.getElementById('sumTotal').textContent = `$${total.toFixed(2)}`;
+}
+
+function skipPackage() {
+    selectedPackage = null;
+    skipPackageSelected = true;
+    goStep(3);
+    Toast.info('Booking without a package');
+}
+
+function getRequiredStaffCount() {
+    if (!selectedPackage) return 1; // Default to 1 if no package
+    if (selectedPackage.packageType === 'PHOTOGRAPHY') return selectedPackage.numPhotographers || 1;
+    if (selectedPackage.packageType === 'VIDEOGRAPHY') return selectedPackage.numVideographers || 1;
+    return 1;
 }
 
 async function loadPackages() {
@@ -223,7 +285,7 @@ async function loadPackages() {
 function filterPackages() {
     const q = document.getElementById('pkgSearch')?.value.toLowerCase() || '';
     const list = allPackages.filter(p =>
-        p.packageName.toLowerCase().includes(q) ||
+        (p.packageName||'').toLowerCase().includes(q) ||
         (p.eventType || '').toLowerCase().includes(q) ||
         (p.packageType || '').toLowerCase().includes(q)
     );
@@ -232,10 +294,10 @@ function filterPackages() {
             <div class="package-card ${selectedPackage?.id === p.id ? 'selected' : ''}" onclick="selectPackage(${p.id})">
                 <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:10px">
                     <div>
-                        <div style="font-weight:700;color:#F0F0F0;font-size:.9rem">${p.packageName}</div>
+                        <div style="font-weight:700;color:#F0F0F0;font-size:.9rem">${p.packageName || 'Unnamed Package'}</div>
                         <span class="badge-status badge-gold" style="font-size:.65rem;margin-top:4px">${p.packageType || 'Package'}</span>
                     </div>
-                    <div style="font-size:1.2rem;font-weight:800;color:#D4A017">$${p.price?.toFixed(2)}</div>
+                    <div style="font-size:1.2rem;font-weight:800;color:#D4A017">$${(p.price || 0).toFixed(2)}</div>
                 </div>
                 <div style="font-size:.78rem;color:#666;margin-bottom:8px">${p.description || ''}</div>
                 <div style="font-size:.75rem;color:#555">
@@ -257,6 +319,11 @@ function selectPackage(id) {
 async function loadStaff() {
     try {
         allStaff = await API.staff.getAvailable();
+        const required = getRequiredStaffCount();
+        const msg = selectedPackage 
+            ? `Please select ${required} team member(s) for your ${selectedPackage.packageType} package.`
+            : `Please select your team member(s) (Minimum 1).`;
+        document.querySelector('#step3 p').textContent = msg;
         renderStaffCards(allStaff);
     } catch(e) { Toast.error('Failed to load staff'); }
 }
@@ -271,9 +338,12 @@ function filterStaff(type) {
 }
 
 function renderStaffCards(list) {
-    document.getElementById('staffList').innerHTML = list.map(s => `
+    const required = getRequiredStaffCount();
+    document.getElementById('staffList').innerHTML = list.map(s => {
+        const isSelected = selectedStaffs.some(x => x.id === s.id);
+        return `
         <div class="col-md-6">
-            <div class="staff-card ${selectedStaff?.id === s.id ? 'selected' : ''}" onclick="selectStaff(${s.id})">
+            <div class="staff-card ${isSelected ? 'selected' : ''}" onclick="selectStaff(${s.id})">
                 <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
                     ${Utils.avatarHtml(s.name, 40)}
                     <div>
@@ -284,17 +354,33 @@ function renderStaffCards(list) {
                 <div style="font-size:.78rem;color:#666;margin-bottom:6px">${s.specialization || ''}</div>
                 <div style="display:flex;justify-content:space-between;align-items:center">
                     <div style="font-size:.9rem;font-weight:700;color:#D4A017">$${s.pricePerDay}/day</div>
-                    ${selectedStaff?.id === s.id ? '<div style="color:#D4A017;font-size:.75rem;font-weight:700"><i class="fas fa-check-circle me-1"></i>Selected</div>' : '<div style="color:#2ECC71;font-size:.75rem"><i class="fas fa-circle" style="font-size:.5rem;margin-right:4px"></i>Available</div>'}
+                    ${isSelected ? '<div style="color:#D4A017;font-size:.75rem;font-weight:700"><i class="fas fa-check-circle me-1"></i>Selected</div>' : '<div style="color:#2ECC71;font-size:.75rem"><i class="fas fa-circle" style="font-size:.5rem;margin-right:4px"></i>Available</div>'}
                 </div>
             </div>
-        </div>`).join('') || '<div class="col-12 empty-state"><i class="fas fa-users"></i><p>No available staff</p></div>';
+        </div>`;
+    }).join('') || '<div class="col-12 empty-state"><i class="fas fa-users"></i><p>No available staff</p></div>';
 }
 
 function selectStaff(id) {
-    selectedStaff = allStaff.find(s => s.id === id);
+    const s = allStaff.find(x => x.id === id);
+    const required = getRequiredStaffCount();
+    const idx = selectedStaffs.findIndex(x => x.id === id);
+
+    if (idx > -1) {
+        selectedStaffs.splice(idx, 1);
+    } else {
+        // If no package, allow any number of staff? Or just keep it at 1 for now?
+        // Let's allow up to 5 if no package for flexibility
+        const limit = selectedPackage ? required : 5;
+        if (selectedStaffs.length >= limit) {
+            Toast.warning(`You can only select ${limit} team member(s).`);
+            return;
+        }
+        selectedStaffs.push(s);
+    }
+    
     renderStaffCards(allStaff);
     updateSummary();
-    Toast.info(`${selectedStaff.name} selected`);
 }
 
 function renderFullSummary() {
@@ -316,6 +402,7 @@ function renderFullSummary() {
         </div>
         <div style="background:#1a1a1a;border-radius:10px;padding:16px;margin-bottom:12px">
             <div style="font-size:.7rem;color:#666;text-transform:uppercase;margin-bottom:8px">Selected Package</div>
+            ${selectedPackage ? `
             <div style="display:flex;justify-content:space-between">
                 <div>
                     <div style="font-weight:700;color:#F0F0F0">${selectedPackage?.packageName}</div>
@@ -323,18 +410,22 @@ function renderFullSummary() {
                 </div>
                 <div style="font-size:1.1rem;font-weight:800;color:#D4A017">$${selectedPackage?.price?.toFixed(2)}</div>
             </div>
+            ` : `<div style="color:#555;font-style:italic">No package selected (Staff only booking)</div>`}
         </div>
         <div style="background:#1a1a1a;border-radius:10px;padding:16px;margin-bottom:20px">
-            <div style="font-size:.7rem;color:#666;text-transform:uppercase;margin-bottom:8px">Selected Staff</div>
-            <div style="display:flex;justify-content:space-between;align-items:center">
-                <div style="display:flex;align-items:center;gap:10px">
-                    ${Utils.avatarHtml(selectedStaff?.name, 36)}
-                    <div>
-                        <div style="font-weight:700;color:#F0F0F0">${selectedStaff?.name}</div>
-                        <div style="font-size:.78rem;color:#666">${selectedStaff?.type}</div>
+            <div style="font-size:.7rem;color:#666;text-transform:uppercase;margin-bottom:8px">Selected Team (${selectedStaffs.length})</div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+                ${selectedStaffs.map(s => `
+                <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:1px solid #2a2a2a">
+                    <div style="display:flex;align-items:center;gap:10px">
+                        ${Utils.avatarHtml(s.name, 36)}
+                        <div>
+                            <div style="font-weight:700;color:#F0F0F0">${s.name}</div>
+                            <div style="font-size:.78rem;color:#666">${s.type}</div>
+                        </div>
                     </div>
-                </div>
-                <div style="font-size:1.1rem;font-weight:800;color:#D4A017">$${selectedStaff?.pricePerDay?.toFixed(2)}/day</div>
+                    <div style="font-size:1.1rem;font-weight:800;color:#D4A017">$${s.pricePerDay?.toFixed(2)}</div>
+                </div>`).join('')}
             </div>
         </div>
         <div style="background:rgba(212,160,23,.08);border:1px solid rgba(212,160,23,.3);border-radius:10px;padding:16px;display:flex;justify-content:space-between;align-items:center">
@@ -348,19 +439,28 @@ async function submitBooking() {
     btn.innerHTML = '<div class="spinner-gold" style="width:16px;height:16px"></div> Processing...';
     btn.disabled = true;
 
-    const total = (selectedPackage?.price || 0) + (selectedStaff?.pricePerDay || 0);
+    const staffTotal = selectedStaffs.reduce((acc, s) => acc + (s.pricePerDay || 0), 0);
+    const total = (selectedPackage?.price || 0) + staffTotal;
 
     try {
-        await API.bookings.create({
-            userId:      1, // In real app, get from auth
-            staffId:     selectedStaff.id,
-            packageId:   selectedPackage.id,
+        const currentUser = Auth.getUser();
+        const payload = {
+            userId:      currentUser?.id || 1,
+            staffIds:    selectedStaffs.map(s => s.id),
+            packageId:   selectedPackage ? selectedPackage.id : null,
             eventDate:   document.getElementById('eventDate').value,
             location:    document.getElementById('location').value,
             totalAmount: total,
             notes:       document.getElementById('notes').value
-        });
-        Toast.success('Booking created successfully! 🎉');
+        };
+
+        if (editingBookingId) {
+            await API.bookings.update(editingBookingId, payload);
+            Toast.success('Booking updated successfully! 🎉');
+        } else {
+            await API.bookings.create(payload);
+            Toast.success('Booking created successfully! 🎉');
+        }
         setTimeout(() => window.location.href = 'bookings.html', 1500);
     } catch(e) {
         Toast.error(e.message || 'Failed to create booking');
@@ -376,6 +476,7 @@ async function submitBooking() {
 });
 
 renderStepper();
+checkEditMode();
 </script>
 </body>
 </html>

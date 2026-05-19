@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LuminaShot — Photography Booking System</title>
+<title>Snapix — Photography Booking System</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
@@ -72,7 +72,7 @@
         <!-- Auth Card -->
         <div class="col-lg-4 col-md-6">
             <div class="auth-card">
-                <div class="auth-logo">LuminaShot</div>
+                <div class="auth-logo">Snapix</div>
                 <div class="auth-subtitle">Photography &amp; Booking Management</div>
 
                 <div class="tabs">
@@ -121,17 +121,6 @@
                         <label class="form-label-dark">Password</label>
                         <input type="password" id="regPassword" class="form-control-dark" placeholder="Min. 6 characters">
                     </div>
-                    <div class="mb-4">
-                        <label class="form-label-dark">Account Type</label>
-                        <div class="role-select">
-                            <button class="role-btn selected" id="roleUser" onclick="selectRole('USER')">
-                                <i class="fas fa-user me-1"></i> User
-                            </button>
-                            <button class="role-btn" id="roleAdmin" onclick="selectRole('ADMIN')">
-                                <i class="fas fa-user-shield me-1"></i> Admin
-                            </button>
-                        </div>
-                    </div>
                     <button class="btn-gold w-100 justify-content-center py-3" id="regBtn" onclick="doRegister()">
                         <i class="fas fa-user-plus"></i> Create Account
                     </button>
@@ -149,8 +138,6 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="js/api.js"></script>
 <script>
-let selectedRole = 'USER';
-
 // Redirect if already logged in
 if (Auth.isLoggedIn()) redirectUser();
 
@@ -167,12 +154,6 @@ function switchTab(tab) {
     document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', (i === 0) === (tab === 'login')));
     document.getElementById('loginForm').style.display    = tab === 'login' ? 'block' : 'none';
     document.getElementById('registerForm').style.display = tab === 'register' ? 'block' : 'none';
-}
-
-function selectRole(role) {
-    selectedRole = role;
-    document.getElementById('roleUser').classList.toggle('selected', role === 'USER');
-    document.getElementById('roleAdmin').classList.toggle('selected', role === 'ADMIN');
 }
 
 function togglePw(id) {
@@ -197,7 +178,7 @@ async function doLogin() {
 
     try {
         const res = await API.auth.login({ email, password });
-        Auth.setSession(res.token, { email: res.email, role: res.role, fullName: res.fullName });
+        Auth.setSession(res.token, { id: res.id, email: res.email, role: res.role, fullName: res.fullName });
         Toast.success(`Welcome back, ${res.fullName}!`);
         setTimeout(() => redirectUser(), 800);
     } catch (e) {
@@ -219,7 +200,7 @@ async function doRegister() {
     btn.disabled = true;
 
     try {
-        await API.auth.register({ fullName, email, password, role: selectedRole });
+        await API.auth.register({ fullName, email, password, role: 'USER' });
         Toast.success('Account created! Please sign in.');
         switchTab('login');
         document.getElementById('loginEmail').value = email;

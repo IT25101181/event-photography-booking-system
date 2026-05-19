@@ -19,7 +19,7 @@ function renderSidebar(activePage) {
     return `
     <div class="sidebar" id="sidebar">
         <div class="sidebar-logo">
-            <div class="brand">LuminaShot</div>
+            <div class="brand">Snapix</div>
             <div class="brand-sub">Management Suite</div>
         </div>
 

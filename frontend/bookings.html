@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bookings — LuminaShot</title>
+<title>Bookings — Snapix</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -144,6 +144,7 @@ function renderBookings(list) {
         return;
     }
 
+    const today = new Date().toISOString().split('T')[0];
     document.getElementById('bookingsList').innerHTML = list.map(b => {
         const d = b.eventDate ? new Date(b.eventDate) : null;
         return `
@@ -166,16 +167,17 @@ function renderBookings(list) {
                     <i class="fas fa-dollar-sign me-1" style="color:#2ECC71"></i>${b.totalAmount?.toFixed(2) || '0.00'}
                 </div>
                 <div style="font-size:.78rem;color:#555">
-                    Staff ID: ${b.staffId || '—'} &nbsp;|&nbsp; Package ID: ${b.packageId || '—'}
+                    Team: ${b.staffNames?.join(', ') || b.staffIds?.join(', ') || '—'} &nbsp;|&nbsp; Package ID: ${b.packageId || '—'}
                 </div>
                 ${b.notes ? `<div style="font-size:.78rem;color:#555;margin-top:6px;font-style:italic;border-left:2px solid #2a2a2a;padding-left:10px">${b.notes}</div>` : ''}
             </div>
             <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
                 <div style="font-size:.7rem;color:#555">${Utils.formatDateTime(b.createdAt)}</div>
                 <div style="display:flex;gap:6px">
-                    ${b.status === 'PENDING' ? `<button class="btn-gold" style="padding:6px 12px;font-size:.78rem" onclick="event.stopPropagation();quickConfirm(${b.id})"><i class="fas fa-check"></i> Confirm</button>` : ''}
+                    ${(b.status === 'PENDING' || b.status === 'CONFIRMED') ? `<button class="btn-ghost" style="padding:6px 12px" onclick="event.stopPropagation(); window.location.href='booking-form.html?edit=${b.id}'" title="Edit Booking"><i class="fas fa-edit"></i></button>` : ''}
+                    ${(Auth.getUser()?.role === 'ADMIN' || Auth.getUser()?.role === 'SUPER_ADMIN') && b.status === 'PENDING' ? `<button class="btn-gold" style="padding:6px 12px;font-size:.78rem" onclick="event.stopPropagation();quickConfirm(${b.id})"><i class="fas fa-check"></i> Confirm</button>` : ''}
                     ${(b.status === 'PENDING' || b.status === 'CONFIRMED') ? `<button class="btn-danger-ghost" style="padding:6px 12px" onclick="event.stopPropagation();quickCancel(${b.id})"><i class="fas fa-times"></i></button>` : ''}
-                    ${b.status === 'CONFIRMED' ? `<button class="btn-ghost" style="padding:6px 12px;font-size:.78rem" onclick="event.stopPropagation();quickComplete(${b.id})"><i class="fas fa-flag-checkered"></i> Complete</button>` : ''}
+                    ${(Auth.getUser()?.role === 'ADMIN' || Auth.getUser()?.role === 'SUPER_ADMIN') && b.status === 'CONFIRMED' && b.eventDate <= today ? `<button class="btn-ghost" style="padding:6px 12px;font-size:.78rem" onclick="event.stopPropagation();quickComplete(${b.id})"><i class="fas fa-flag-checkered"></i> Complete</button>` : ''}
                 </div>
             </div>
         </div>`;
@@ -196,8 +198,8 @@ function openDetail(id) {
             <div class="col-6"><div style="font-size:.72rem;color:#666;text-transform:uppercase">Event Date</div><div style="font-weight:600">${Utils.formatDate(b.eventDate)}</div></div>
             <div class="col-6"><div style="font-size:.72rem;color:#666;text-transform:uppercase">Amount</div><div style="font-weight:700;color:#2ECC71;font-size:1.1rem">$${b.totalAmount?.toFixed(2)||'0.00'}</div></div>
             <div class="col-12"><div style="font-size:.72rem;color:#666;text-transform:uppercase">Location</div><div style="font-weight:600">${b.location||'—'}</div></div>
-            <div class="col-6"><div style="font-size:.72rem;color:#666;text-transform:uppercase">User ID</div><div>${b.userId||'—'}</div></div>
-            <div class="col-6"><div style="font-size:.72rem;color:#666;text-transform:uppercase">Staff ID</div><div>${b.staffId||'—'}</div></div>
+            <div class="col-6"><div style="font-size:.72rem;color:#666;text-transform:uppercase">Customer</div><div>${b.userName || b.userId || '—'}</div></div>
+            <div class="col-6"><div style="font-size:.72rem;color:#666;text-transform:uppercase">Team Members</div><div>${b.staffNames?.join(', ') || b.staffIds?.join(', ') || '—'}</div></div>
             <div class="col-6"><div style="font-size:.72rem;color:#666;text-transform:uppercase">Package ID</div><div>${b.packageId||'—'}</div></div>
             <div class="col-6"><div style="font-size:.72rem;color:#666;text-transform:uppercase">Created</div><div style="font-size:.8rem">${Utils.formatDateTime(b.createdAt)}</div></div>
             ${b.notes ? `<div class="col-12"><div style="font-size:.72rem;color:#666;text-transform:uppercase">Notes</div><div style="font-style:italic;color:#888">${b.notes}</div></div>` : ''}
@@ -205,8 +207,24 @@ function openDetail(id) {
 
     const confirmBtn = document.getElementById('confirmBtn');
     const cancelBtn  = document.getElementById('cancelBtn');
-    confirmBtn.style.display = b.status === 'PENDING' ? 'flex' : 'none';
+    const editBtn    = document.createElement('button');
+    editBtn.className = 'btn-outline-gold';
+    editBtn.innerHTML = '<i class="fas fa-edit"></i> Edit Booking';
+    editBtn.onclick   = () => window.location.href = `booking-form.html?edit=${id}`;
+    
+    // Clear previous dynamic buttons if any
+    const footer = document.querySelector('#editModal .modal-footer');
+    footer.querySelectorAll('.dynamic-btn').forEach(b => b.remove());
+    editBtn.classList.add('dynamic-btn');
+
+    const isAdmin = Auth.getUser()?.role === 'ADMIN' || Auth.getUser()?.role === 'SUPER_ADMIN';
+    
+    confirmBtn.style.display = (isAdmin && b.status === 'PENDING') ? 'flex' : 'none';
     cancelBtn.style.display  = (b.status === 'PENDING' || b.status === 'CONFIRMED') ? 'flex' : 'none';
+    
+    if (b.status === 'PENDING' || b.status === 'CONFIRMED') {
+        footer.insertBefore(editBtn, confirmBtn);
+    }
 
     confirmBtn.onclick = () => quickConfirm(id);
     cancelBtn.onclick  = () => quickCancel(id);

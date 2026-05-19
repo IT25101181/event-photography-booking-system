@@ -73,7 +73,13 @@ const http = {
 
     handle: async (res) => {
         const text = await res.text();
-        const data = text ? JSON.parse(text) : {};
+        let data;
+        try {
+            data = text ? JSON.parse(text) : {};
+        } catch (e) {
+            data = { message: text };
+        }
+
         if (!res.ok) {
             throw { status: res.status, message: data.message || 'Request failed', data };
         }
@@ -95,7 +101,8 @@ const API = {
         getById:  (id) => http.get(`/users/${id}`),
         create:   (body) => http.post('/users/register', body),
         update:   (id, body) => http.put(`/users/${id}`, body),
-        delete:   (id) => http.delete(`/users/${id}`)
+        delete:   (id) => http.delete(`/users/${id}`),
+        toggle:   (id) => http.patch(`/users/${id}/toggle-status`)
     },
 
     // Media Staff
@@ -127,6 +134,7 @@ const API = {
         getByUser:  (uid) => http.get(`/bookings/user/${uid}`),
         getByStatus:(s) => http.get(`/bookings/status/${s}`),
         create:     (body) => http.post('/bookings', body),
+        update:     (id, body) => http.put(`/bookings/${id}`, body),
         confirm:    (id) => http.patch(`/bookings/${id}/confirm`),
         cancel:     (id) => http.patch(`/bookings/${id}/cancel`),
         complete:   (id) => http.patch(`/bookings/${id}/complete`),

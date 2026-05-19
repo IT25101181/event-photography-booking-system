@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Media Staff — LuminaShot</title>
+<title>Media Staff — Snapix</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -23,9 +23,7 @@
             <h1 class="page-title">Media Gallery</h1>
             <p class="page-subtitle">Manage photographers and videographers.</p>
         </div>
-        <button class="btn-gold" data-bs-toggle="modal" data-bs-target="#staffModal" onclick="openAddModal()">
-            <i class="fas fa-plus"></i> Add Staff
-        </button>
+        <div id="adminActions"></div>
     </div>
 
     <!-- Stats Row -->
@@ -144,6 +142,15 @@
 <script>
 initPage('staff');
 
+// Render "Add Staff" button for admins
+if (Auth.getUser()?.role === 'ADMIN' || Auth.getUser()?.role === 'SUPER_ADMIN') {
+    document.getElementById('adminActions').innerHTML = `
+        <button class="btn-gold" data-bs-toggle="modal" data-bs-target="#staffModal" onclick="openAddModal()">
+            <i class="fas fa-plus"></i> Add Staff
+        </button>
+    `;
+}
+
 let allStaff = [];
 let currentView = 'grid';
 
@@ -206,11 +213,17 @@ function renderStaff(list) {
                     </div>
                     ${s.availability ? `<div style="font-size:.75rem;color:#555;margin-bottom:12px"><i class="fas fa-calendar me-1"></i>${s.availability}</div>` : ''}
                     <div style="display:flex;gap:6px">
+                        ${Auth.getUser()?.role === 'ADMIN' || Auth.getUser()?.role === 'SUPER_ADMIN' ? `
                         <button class="btn-outline-gold" style="flex:1;justify-content:center;font-size:.78rem" onclick="openEditModal(${s.id})"><i class="fas fa-edit"></i> Edit</button>
                         <button class="btn-ghost" style="padding:8px 10px;font-size:.78rem" onclick="toggleAvail(${s.id})" title="Toggle availability">
                             <i class="fas ${s.isAvailable ? 'fa-eye-slash' : 'fa-eye'}"></i>
                         </button>
                         <button class="btn-danger-ghost" style="padding:8px 10px" onclick="deleteStaff(${s.id})"><i class="fas fa-trash"></i></button>
+                        ` : `
+                        <button class="btn-gold" style="flex:1;justify-content:center;font-size:.78rem" onclick="window.location.href='booking-form.html?staff=${s.id}'">
+                            <i class="fas fa-calendar-alt"></i> Book Talent
+                        </button>
+                        `}
                     </div>
                 </div>
             </div>`).join('')}</div>`;
@@ -240,9 +253,13 @@ function renderStaff(list) {
                         <td>${Utils.activeBadge(s.isAvailable)}</td>
                         <td>
                             <div style="display:flex;gap:6px">
+                                ${Auth.getUser()?.role === 'ADMIN' || Auth.getUser()?.role === 'SUPER_ADMIN' ? `
                                 <button class="btn-ghost" style="padding:5px 10px;font-size:.75rem" onclick="openEditModal(${s.id})"><i class="fas fa-edit"></i></button>
                                 <button class="btn-ghost" style="padding:5px 10px;font-size:.75rem" onclick="toggleAvail(${s.id})"><i class="fas fa-toggle-${s.isAvailable?'on':'off'}"></i></button>
                                 <button class="btn-danger-ghost" style="padding:5px 10px" onclick="deleteStaff(${s.id})"><i class="fas fa-trash"></i></button>
+                                ` : `
+                                <button class="btn-ghost" style="padding:5px 10px;font-size:.75rem" onclick="window.location.href='booking-form.html?staff=${s.id}'"><i class="fas fa-calendar-plus"></i></button>
+                                `}
                             </div>
                         </td>
                     </tr>`).join('')}</tbody>
